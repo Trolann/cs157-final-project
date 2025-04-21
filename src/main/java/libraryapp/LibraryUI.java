@@ -391,7 +391,10 @@ public class LibraryUI extends Application {
         biographyColumn.setCellValueFactory(new PropertyValueFactory<>("biography"));
         biographyColumn.setPrefWidth(200);
         
-        booksTable.getColumns().addAll(nameColumn, birthYearColumn, biographyColumn);
+        // Add columns individually to avoid type mismatch
+        booksTable.getColumns().add(nameColumn);
+        booksTable.getColumns().add(birthYearColumn);
+        booksTable.getColumns().add(biographyColumn);
     }
     
     private void setupCategoriesTable() {
@@ -405,7 +408,9 @@ public class LibraryUI extends Application {
         descriptionColumn.setCellValueFactory(new PropertyValueFactory<>("description"));
         descriptionColumn.setPrefWidth(200);
         
-        booksTable.getColumns().addAll(nameColumn, descriptionColumn);
+        // Add columns individually to avoid type mismatch
+        booksTable.getColumns().add(nameColumn);
+        booksTable.getColumns().add(descriptionColumn);
     }
     
     // ========== Data Refresh Methods ==========

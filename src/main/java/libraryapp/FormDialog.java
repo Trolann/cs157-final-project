@@ -110,4 +110,19 @@ public class FormDialog extends Dialog<Boolean> {
         formGrid.add(comboBox, 1, row);
         return comboBox;
     }
+    
+    /**
+     * Add a node to the form grid.
+     * 
+     * @param label The label for the node
+     * @param node The node to add
+     * @param row The row to add the node to
+     * @return The node that was added
+     */
+    public <T extends javafx.scene.Node> T addNode(String label, T node, int row) {
+        Label fieldLabel = new Label(label);
+        formGrid.add(fieldLabel, 0, row);
+        formGrid.add(node, 1, row);
+        return node;
+    }
 }
