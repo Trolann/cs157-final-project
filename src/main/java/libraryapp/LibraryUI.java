@@ -267,6 +267,21 @@ public class LibraryUI extends Application {
         MultipleSelectionModel<LoanData> selectionModel = borrowedBooksTable.getSelectionModel();
         selectionModel.setSelectionMode(SelectionMode.MULTIPLE);
         
+        // Set cell factory to style rows based on loan status
+        borrowedBooksTable.setRowFactory(tv -> new TableRow<LoanData>() {
+            @Override
+            protected void updateItem(LoanData item, boolean empty) {
+                super.updateItem(item, empty);
+                if (item == null || empty) {
+                    setStyle("");
+                } else if (!"active".equals(item.getStatus())) {
+                    setStyle("-fx-text-fill: #888888;"); // Grey out returned books
+                } else {
+                    setStyle("-fx-font-weight: bold;"); // Bold active loans
+                }
+            }
+        });
+        
         // Add table columns for borrowed books
         TableColumn<LoanData, String> bookTitleColumn = new TableColumn<>("Book Title");
         bookTitleColumn.setCellValueFactory(new PropertyValueFactory<>("title"));
@@ -653,21 +668,6 @@ public class LibraryUI extends Application {
             loansList.addAll(returnedLoans);
             
             borrowedBooksTable.setItems(loansList);
-            
-            // Set cell factory to style rows based on loan status
-            borrowedBooksTable.setRowFactory(tv -> new TableRow<LoanData>() {
-                @Override
-                protected void updateItem(LoanData item, boolean empty) {
-                    super.updateItem(item, empty);
-                    if (item == null || empty) {
-                        setStyle("");
-                    } else if (!"active".equals(item.getStatus())) {
-                        setStyle("-fx-text-fill: #888888;"); // Grey out returned books
-                    } else {
-                        setStyle("-fx-font-weight: bold;"); // Bold active loans
-                    }
-                }
-            });
         } catch (SQLException e) {
             showError("Database Error", "Failed to load borrowed books: " + e.getMessage());
         }
