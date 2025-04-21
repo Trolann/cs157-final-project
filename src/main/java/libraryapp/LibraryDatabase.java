@@ -457,6 +457,53 @@ public class LibraryDatabase extends SQLiteWrapper {
         return bookId;
     }
     
+    /**
+     * Update an existing book's information.
+     * 
+     * @param bookId Book ID
+     * @param title Book title
+     * @param isbn ISBN number
+     * @param publicationYear Year of publication
+     * @param publisher Publisher name
+     * @param totalCopies Total number of copies
+     * @param categoryId Category ID
+     * @param authorIds List of author IDs
+     * @throws SQLException If a database error occurs
+     */
+    public void updateBook(int bookId, String title, String isbn, int publicationYear, 
+                          String publisher, int totalCopies, int categoryId, 
+                          List<Integer> authorIds) throws SQLException {
+        // Get current available copies to calculate the difference
+        Map<String, Object> currentBook = querySingle(
+                "SELECT total_copies, available_copies FROM Books WHERE book_id = ?", bookId);
+        
+        if (currentBook == null) {
+            throw new SQLException("Book with ID " + bookId + " not found");
+        }
+        
+        int currentTotal = ((Number) currentBook.get("total_copies")).intValue();
+        int currentAvailable = ((Number) currentBook.get("available_copies")).intValue();
+        
+        // Calculate new available copies (maintain the same number of borrowed books)
+        int borrowedCopies = currentTotal - currentAvailable;
+        int newAvailable = Math.max(0, totalCopies - borrowedCopies);
+        
+        // Update the book
+        execute("UPDATE Books SET title = ?, isbn = ?, publication_year = ?, " +
+                "publisher = ?, total_copies = ?, available_copies = ?, category_id = ? " +
+                "WHERE book_id = ?",
+                title, isbn, publicationYear, publisher, totalCopies, newAvailable, categoryId, bookId);
+        
+        // Update book-author relationships
+        // First, remove all existing relationships
+        execute("DELETE FROM BookAuthors WHERE book_id = ?", bookId);
+        
+        // Then add the new relationships
+        for (int authorId : authorIds) {
+            execute("INSERT INTO BookAuthors (book_id, author_id) VALUES (?, ?)", bookId, authorId);
+        }
+    }
+    
     // ========== Author Operations ==========
     
     /**
@@ -520,6 +567,23 @@ public class LibraryDatabase extends SQLiteWrapper {
         return ((Number) result.get("author_id")).intValue();
     }
     
+    /**
+     * Update an existing author's information.
+     * 
+     * @param authorId Author's ID
+     * @param firstName Author's first name
+     * @param lastName Author's last name
+     * @param birthYear Author's birth year
+     * @param biography Author's biography
+     * @throws SQLException If a database error occurs
+     */
+    public void updateAuthor(int authorId, String firstName, String lastName, 
+                            int birthYear, String biography) throws SQLException {
+        execute("UPDATE Authors SET first_name = ?, last_name = ?, birth_year = ?, biography = ? " +
+                "WHERE author_id = ?",
+                firstName, lastName, birthYear, biography, authorId);
+    }
+    
     // ========== Category Operations ==========
     
     /**
@@ -570,6 +634,19 @@ public class LibraryDatabase extends SQLiteWrapper {
         
         Map<String, Object> result = querySingle("SELECT category_id FROM Categories WHERE name = ?", name);
         return ((Number) result.get("category_id")).intValue();
+    }
+    
+    /**
+     * Update an existing category's information.
+     * 
+     * @param categoryId Category ID
+     * @param name Category name
+     * @param description Category description
+     * @throws SQLException If a database error occurs
+     */
+    public void updateCategory(int categoryId, String name, String description) throws SQLException {
+        execute("UPDATE Categories SET name = ?, description = ? WHERE category_id = ?",
+                name, description, categoryId);
     }
     
     // ========== Borrower Operations ==========
@@ -750,5 +827,111 @@ public class LibraryDatabase extends SQLiteWrapper {
                 "ORDER BY r.checkout_date DESC";
         
         return queryMultiple(sql, borrowerId);
+    }
+    
+    /**
+     * Delete a book from the library.
+     * Only allows deletion if no active loans exist for this book.
+     * 
+     * @param bookId The ID of the book to delete
+     * @return true if successful, false if the book has active loans
+     * @throws SQLException If a database error occurs
+     */
+    public boolean deleteBook(int bookId) throws SQLException {
+        // Check if the book has any active loans
+        Map<String, Object> activeLoans = querySingle(
+                "SELECT COUNT(*) as count FROM Reservations WHERE book_id = ? AND status = 'active'", 
+                bookId);
+        
+        if (activeLoans != null && ((Number) activeLoans.get("count")).intValue() > 0) {
+            return false; // Cannot delete a book with active loans
+        }
+        
+        // Delete book-author relationships
+        execute("DELETE FROM BookAuthors WHERE book_id = ?", bookId);
+        
+        // Delete reservation history (if allowed by business rules)
+        execute("DELETE FROM Reservations WHERE book_id = ?", bookId);
+        
+        // Delete the book
+        execute("DELETE FROM Books WHERE book_id = ?", bookId);
+        
+        return true;
+    }
+    
+    /**
+     * Delete an author from the library.
+     * Only allows deletion if no books are associated with this author.
+     * 
+     * @param authorId The ID of the author to delete
+     * @return true if successful, false if the author has associated books
+     * @throws SQLException If a database error occurs
+     */
+    public boolean deleteAuthor(int authorId) throws SQLException {
+        // Check if the author has any books
+        Map<String, Object> associatedBooks = querySingle(
+                "SELECT COUNT(*) as count FROM BookAuthors WHERE author_id = ?", 
+                authorId);
+        
+        if (associatedBooks != null && ((Number) associatedBooks.get("count")).intValue() > 0) {
+            return false; // Cannot delete an author with associated books
+        }
+        
+        // Delete the author
+        execute("DELETE FROM Authors WHERE author_id = ?", authorId);
+        
+        return true;
+    }
+    
+    /**
+     * Delete a category from the library.
+     * Only allows deletion if no books are in this category.
+     * 
+     * @param categoryId The ID of the category to delete
+     * @return true if successful, false if the category has books
+     * @throws SQLException If a database error occurs
+     */
+    public boolean deleteCategory(int categoryId) throws SQLException {
+        // Check if the category has any books
+        Map<String, Object> associatedBooks = querySingle(
+                "SELECT COUNT(*) as count FROM Books WHERE category_id = ?", 
+                categoryId);
+        
+        if (associatedBooks != null && ((Number) associatedBooks.get("count")).intValue() > 0) {
+            return false; // Cannot delete a category with associated books
+        }
+        
+        // Delete the category
+        execute("DELETE FROM Categories WHERE category_id = ?", categoryId);
+        
+        return true;
+    }
+    
+    /**
+     * Delete a borrower from the library.
+     * Only allows deletion if the borrower has no active loans.
+     * 
+     * @param borrowerId The ID of the borrower to delete
+     * @return true if successful, false if the borrower has active loans
+     * @throws SQLException If a database error occurs
+     */
+    public boolean deleteBorrower(int borrowerId) throws SQLException {
+        // Check if the borrower has any active loans
+        Map<String, Object> activeLoans = querySingle(
+                "SELECT COUNT(*) as count FROM Reservations WHERE borrower_id = ? AND status = 'active'", 
+                borrowerId);
+        
+        if (activeLoans != null && ((Number) activeLoans.get("count")).intValue() > 0) {
+            return false; // Cannot delete a borrower with active loans
+        }
+        
+        // Update reservation history to anonymize the borrower (if required by privacy rules)
+        // Alternatively, you could delete the reservation history
+        // This depends on your business requirements
+        
+        // Delete the borrower
+        execute("DELETE FROM Borrowers WHERE card_number = ?", borrowerId);
+        
+        return true;
     }
 }
