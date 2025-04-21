@@ -59,6 +59,23 @@ Desktop.ini
 *.db
 *.sqlite
 *.sqlite3
+
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# SQLite database files
+*.db
+*.sqlite
+*.sqlite3
+gradle/
+gradle/*
+gradlew
+gradlew.bat
 gradle/
 gradle/*
 gradlew
