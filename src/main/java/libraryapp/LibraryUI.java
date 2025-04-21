@@ -186,21 +186,35 @@ public class LibraryUI extends Application {
         actionButtonsBox.setAlignment(Pos.CENTER);
         
         Button newItemButton = new Button("New Book");
-        Button editItemButton = new Button("Edit Book");
-        editItemButton.setDisable(true); // Initially disabled until selection
         
-        actionButtonsBox.getChildren().addAll(newItemButton, editItemButton);
+        actionButtonsBox.getChildren().add(newItemButton);
         
-        // Add selection listener to enable edit button when an item is selected
-        booksTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
-            editItemButton.setDisable(newSelection == null);
-        });
-        
-        // Update button actions based on selected search type
+        // Update button text based on selected search type
         searchTypeComboBox.valueProperty().addListener((obs, oldValue, newValue) -> {
             newItemButton.setText("New " + newValue);
-            editItemButton.setText("Edit " + newValue);
-            editItemButton.setDisable(booksTable.getSelectionModel().getSelectedItem() == null);
+        });
+        
+        // Add double-click handler to open edit form
+        booksTable.setRowFactory(tv -> {
+            TableRow<BookData> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && (!row.isEmpty())) {
+                    Object selectedItem = row.getItem();
+                    String type = searchTypeComboBox.getValue();
+                    
+                    if ("Books".equals(type) && selectedItem instanceof BookData) {
+                        // TODO: Implement edit book form
+                        showError("Not Implemented", "Edit Book functionality is not yet implemented");
+                    } else if ("Authors".equals(type) && selectedItem instanceof AuthorData) {
+                        // TODO: Implement edit author form
+                        showError("Not Implemented", "Edit Author functionality is not yet implemented");
+                    } else if ("Categories".equals(type) && selectedItem instanceof CategoryData) {
+                        // TODO: Implement edit category form
+                        showError("Not Implemented", "Edit Category functionality is not yet implemented");
+                    }
+                }
+            });
+            return row;
         });
         
         // Add action handlers for the popup forms
@@ -212,24 +226,6 @@ public class LibraryUI extends Application {
                 showAuthorForm();
             } else if ("Categories".equals(type)) {
                 showCategoryForm();
-            }
-        });
-        
-        editItemButton.setOnAction(e -> {
-            String type = searchTypeComboBox.getValue();
-            Object selectedItem = booksTable.getSelectionModel().getSelectedItem();
-            
-            if (selectedItem == null) return;
-            
-            if ("Books".equals(type) && selectedItem instanceof BookData) {
-                // TODO: Implement edit book form
-                showError("Not Implemented", "Edit Book functionality is not yet implemented");
-            } else if ("Authors".equals(type) && selectedItem instanceof AuthorData) {
-                // TODO: Implement edit author form
-                showError("Not Implemented", "Edit Author functionality is not yet implemented");
-            } else if ("Categories".equals(type) && selectedItem instanceof CategoryData) {
-                // TODO: Implement edit category form
-                showError("Not Implemented", "Edit Category functionality is not yet implemented");
             }
         });
         
@@ -347,26 +343,22 @@ public class LibraryUI extends Application {
         borrowerActionBox.setAlignment(Pos.CENTER);
         
         Button newBorrowerButton = new Button("New Borrower");
-        Button editBorrowerButton = new Button("Edit Borrower");
         
-        borrowerActionBox.getChildren().addAll(newBorrowerButton, editBorrowerButton);
+        borrowerActionBox.getChildren().add(newBorrowerButton);
         
         // Add action handlers
         newBorrowerButton.setOnAction(e -> showBorrowerForm(null));
-        editBorrowerButton.setOnAction(e -> {
-            if (selectedBorrower != null) {
-                showBorrowerForm(selectedBorrower);
-            } else {
-                showError("No Selection", "Please select a borrower to edit");
-            }
-        });
         
-        // Initially disable edit borrower button
-        editBorrowerButton.setDisable(true);
-        
-        // Enable edit borrower button only when a borrower is selected
-        borrowersTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
-            editBorrowerButton.setDisable(newSelection == null);
+        // Add double-click handler to open borrower edit form
+        borrowersTable.setRowFactory(tv -> {
+            TableRow<BorrowerData> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && (!row.isEmpty())) {
+                    BorrowerData borrower = row.getItem();
+                    showBorrowerForm(borrower);
+                }
+            });
+            return row;
         });
         
         panel.getChildren().addAll(
