@@ -263,6 +263,10 @@ public class LibraryUI extends Application {
         borrowedBooksTable.setPrefHeight(150);
         borrowedBooksTable.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE); // Enable multiple selection
         
+        // Make sure the selection model allows multiple selection
+        MultipleSelectionModel<LoanData> selectionModel = borrowedBooksTable.getSelectionModel();
+        selectionModel.setSelectionMode(SelectionMode.MULTIPLE);
+        
         // Add table columns for borrowed books
         TableColumn<LoanData, String> bookTitleColumn = new TableColumn<>("Book Title");
         bookTitleColumn.setCellValueFactory(new PropertyValueFactory<>("title"));
@@ -735,7 +739,7 @@ public class LibraryUI extends Application {
     
     private void returnSelectedBook() {
         // Get all selected loans
-        ObservableList<LoanData> selectedLoans = borrowedBooksTable.getSelectionModel().getSelectedItems();
+        List<LoanData> selectedLoans = new ArrayList<>(borrowedBooksTable.getSelectionModel().getSelectedItems());
         
         if (selectedLoans.isEmpty()) {
             showError("No Selection", "Please select at least one book to return");
@@ -744,11 +748,15 @@ public class LibraryUI extends Application {
         
         // Return each selected book
         int successCount = 0;
+        boolean hasActiveBooks = false;
+        
         for (LoanData loan : selectedLoans) {
             // Skip already returned books
             if (!"active".equals(loan.getStatus())) {
                 continue;
             }
+            
+            hasActiveBooks = true;
             
             try {
                 boolean success = db.returnBook(loan.getReservationId());
@@ -764,8 +772,10 @@ public class LibraryUI extends Application {
             updateStatus(successCount + " book(s) returned successfully");
             refreshBooksList();
             refreshBorrowedBooks();
-        } else if (!selectedLoans.isEmpty()) {
+        } else if (hasActiveBooks) {
             showError("Return Failed", "Failed to return any books");
+        } else if (!selectedLoans.isEmpty()) {
+            showError("No Active Books", "The selected books have already been returned");
         }
     }
     
