@@ -357,4 +357,398 @@ public class LibraryDatabase extends SQLiteWrapper {
                     borrower[0], borrower[1], borrower[2], borrower[3], borrower[4], borrower[5]);
         }
     }
+    
+    // ========== Book Operations ==========
+    
+    /**
+     * Search for books based on a search term.
+     * Searches in title, ISBN, and author name.
+     * 
+     * @param searchTerm The term to search for
+     * @return List of books matching the search term
+     * @throws SQLException If a database error occurs
+     */
+    public List<Map<String, Object>> searchBooks(String searchTerm) throws SQLException {
+        String sql = "SELECT b.book_id, b.title, b.isbn, b.publication_year, b.publisher, " +
+                "b.available_copies, b.total_copies, c.name as category, " +
+                "GROUP_CONCAT(a.first_name || ' ' || a.last_name, ', ') as authors " +
+                "FROM Books b " +
+                "LEFT JOIN Categories c ON b.category_id = c.category_id " +
+                "LEFT JOIN BookAuthors ba ON b.book_id = ba.book_id " +
+                "LEFT JOIN Authors a ON ba.author_id = a.author_id " +
+                "WHERE b.title LIKE ? OR b.isbn LIKE ? " +
+                "OR EXISTS (SELECT 1 FROM Authors a2 JOIN BookAuthors ba2 ON a2.author_id = ba2.author_id " +
+                "WHERE ba2.book_id = b.book_id AND (a2.first_name LIKE ? OR a2.last_name LIKE ?)) " +
+                "GROUP BY b.book_id";
+        
+        String likePattern = "%" + searchTerm + "%";
+        return queryMultiple(sql, likePattern, likePattern, likePattern, likePattern);
+    }
+    
+    /**
+     * Get all books in the library.
+     * 
+     * @return List of all books
+     * @throws SQLException If a database error occurs
+     */
+    public List<Map<String, Object>> getAllBooks() throws SQLException {
+        String sql = "SELECT b.book_id, b.title, b.isbn, b.publication_year, b.publisher, " +
+                "b.available_copies, b.total_copies, c.name as category, " +
+                "GROUP_CONCAT(a.first_name || ' ' || a.last_name, ', ') as authors " +
+                "FROM Books b " +
+                "LEFT JOIN Categories c ON b.category_id = c.category_id " +
+                "LEFT JOIN BookAuthors ba ON b.book_id = ba.book_id " +
+                "LEFT JOIN Authors a ON ba.author_id = a.author_id " +
+                "GROUP BY b.book_id";
+        
+        return queryMultiple(sql);
+    }
+    
+    /**
+     * Get a book by its ID.
+     * 
+     * @param bookId The ID of the book to retrieve
+     * @return The book data or null if not found
+     * @throws SQLException If a database error occurs
+     */
+    public Map<String, Object> getBookById(int bookId) throws SQLException {
+        String sql = "SELECT b.book_id, b.title, b.isbn, b.publication_year, b.publisher, " +
+                "b.available_copies, b.total_copies, c.name as category, " +
+                "GROUP_CONCAT(a.first_name || ' ' || a.last_name, ', ') as authors " +
+                "FROM Books b " +
+                "LEFT JOIN Categories c ON b.category_id = c.category_id " +
+                "LEFT JOIN BookAuthors ba ON b.book_id = ba.book_id " +
+                "LEFT JOIN Authors a ON ba.author_id = a.author_id " +
+                "WHERE b.book_id = ? " +
+                "GROUP BY b.book_id";
+        
+        return querySingle(sql, bookId);
+    }
+    
+    /**
+     * Add a new book to the library.
+     * 
+     * @param title Book title
+     * @param isbn ISBN number
+     * @param publicationYear Year of publication
+     * @param publisher Publisher name
+     * @param totalCopies Total number of copies
+     * @param categoryId Category ID
+     * @param authorIds List of author IDs
+     * @return The ID of the newly created book
+     * @throws SQLException If a database error occurs
+     */
+    public int addBook(String title, String isbn, int publicationYear, String publisher, 
+                      int totalCopies, int categoryId, List<Integer> authorIds) throws SQLException {
+        // Insert the book
+        execute("INSERT INTO Books (title, isbn, publication_year, publisher, total_copies, available_copies, category_id) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                title, isbn, publicationYear, publisher, totalCopies, totalCopies, categoryId);
+        
+        // Get the book ID
+        Map<String, Object> result = querySingle("SELECT book_id FROM Books WHERE isbn = ?", isbn);
+        int bookId = ((Number) result.get("book_id")).intValue();
+        
+        // Add book-author relationships
+        for (int authorId : authorIds) {
+            execute("INSERT INTO BookAuthors (book_id, author_id) VALUES (?, ?)", bookId, authorId);
+        }
+        
+        return bookId;
+    }
+    
+    // ========== Author Operations ==========
+    
+    /**
+     * Search for authors based on a search term.
+     * 
+     * @param searchTerm The term to search for
+     * @return List of authors matching the search term
+     * @throws SQLException If a database error occurs
+     */
+    public List<Map<String, Object>> searchAuthors(String searchTerm) throws SQLException {
+        String sql = "SELECT author_id, first_name, last_name, birth_year, biography " +
+                "FROM Authors " +
+                "WHERE first_name LIKE ? OR last_name LIKE ?";
+        
+        String likePattern = "%" + searchTerm + "%";
+        return queryMultiple(sql, likePattern, likePattern);
+    }
+    
+    /**
+     * Get all authors in the library.
+     * 
+     * @return List of all authors
+     * @throws SQLException If a database error occurs
+     */
+    public List<Map<String, Object>> getAllAuthors() throws SQLException {
+        String sql = "SELECT author_id, first_name, last_name, birth_year, biography FROM Authors";
+        return queryMultiple(sql);
+    }
+    
+    /**
+     * Get an author by ID.
+     * 
+     * @param authorId The ID of the author to retrieve
+     * @return The author data or null if not found
+     * @throws SQLException If a database error occurs
+     */
+    public Map<String, Object> getAuthorById(int authorId) throws SQLException {
+        String sql = "SELECT author_id, first_name, last_name, birth_year, biography " +
+                "FROM Authors WHERE author_id = ?";
+        return querySingle(sql, authorId);
+    }
+    
+    /**
+     * Add a new author to the library.
+     * 
+     * @param firstName Author's first name
+     * @param lastName Author's last name
+     * @param birthYear Author's birth year
+     * @param biography Author's biography
+     * @return The ID of the newly created author
+     * @throws SQLException If a database error occurs
+     */
+    public int addAuthor(String firstName, String lastName, int birthYear, String biography) throws SQLException {
+        execute("INSERT INTO Authors (first_name, last_name, birth_year, biography) VALUES (?, ?, ?, ?)",
+                firstName, lastName, birthYear, biography);
+        
+        Map<String, Object> result = querySingle(
+                "SELECT author_id FROM Authors WHERE first_name = ? AND last_name = ?",
+                firstName, lastName);
+        
+        return ((Number) result.get("author_id")).intValue();
+    }
+    
+    // ========== Category Operations ==========
+    
+    /**
+     * Search for categories based on a search term.
+     * 
+     * @param searchTerm The term to search for
+     * @return List of categories matching the search term
+     * @throws SQLException If a database error occurs
+     */
+    public List<Map<String, Object>> searchCategories(String searchTerm) throws SQLException {
+        String sql = "SELECT category_id, name, description FROM Categories WHERE name LIKE ?";
+        return queryMultiple(sql, "%" + searchTerm + "%");
+    }
+    
+    /**
+     * Get all categories in the library.
+     * 
+     * @return List of all categories
+     * @throws SQLException If a database error occurs
+     */
+    public List<Map<String, Object>> getAllCategories() throws SQLException {
+        String sql = "SELECT category_id, name, description FROM Categories";
+        return queryMultiple(sql);
+    }
+    
+    /**
+     * Get a category by ID.
+     * 
+     * @param categoryId The ID of the category to retrieve
+     * @return The category data or null if not found
+     * @throws SQLException If a database error occurs
+     */
+    public Map<String, Object> getCategoryById(int categoryId) throws SQLException {
+        String sql = "SELECT category_id, name, description FROM Categories WHERE category_id = ?";
+        return querySingle(sql, categoryId);
+    }
+    
+    /**
+     * Add a new category to the library.
+     * 
+     * @param name Category name
+     * @param description Category description
+     * @return The ID of the newly created category
+     * @throws SQLException If a database error occurs
+     */
+    public int addCategory(String name, String description) throws SQLException {
+        execute("INSERT INTO Categories (name, description) VALUES (?, ?)", name, description);
+        
+        Map<String, Object> result = querySingle("SELECT category_id FROM Categories WHERE name = ?", name);
+        return ((Number) result.get("category_id")).intValue();
+    }
+    
+    // ========== Borrower Operations ==========
+    
+    /**
+     * Search for borrowers based on a search term.
+     * 
+     * @param searchTerm The term to search for
+     * @return List of borrowers matching the search term
+     * @throws SQLException If a database error occurs
+     */
+    public List<Map<String, Object>> searchBorrowers(String searchTerm) throws SQLException {
+        String sql = "SELECT card_number, first_name, last_name, address, phone, email, registration_date " +
+                "FROM Borrowers " +
+                "WHERE first_name LIKE ? OR last_name LIKE ? OR email LIKE ? OR phone LIKE ?";
+        
+        String likePattern = "%" + searchTerm + "%";
+        return queryMultiple(sql, likePattern, likePattern, likePattern, likePattern);
+    }
+    
+    /**
+     * Get all borrowers in the library.
+     * 
+     * @return List of all borrowers
+     * @throws SQLException If a database error occurs
+     */
+    public List<Map<String, Object>> getAllBorrowers() throws SQLException {
+        String sql = "SELECT card_number, first_name, last_name, address, phone, email, registration_date FROM Borrowers";
+        return queryMultiple(sql);
+    }
+    
+    /**
+     * Get a borrower by ID.
+     * 
+     * @param cardNumber The card number of the borrower to retrieve
+     * @return The borrower data or null if not found
+     * @throws SQLException If a database error occurs
+     */
+    public Map<String, Object> getBorrowerById(int cardNumber) throws SQLException {
+        String sql = "SELECT card_number, first_name, last_name, address, phone, email, registration_date " +
+                "FROM Borrowers WHERE card_number = ?";
+        return querySingle(sql, cardNumber);
+    }
+    
+    /**
+     * Add a new borrower to the library.
+     * 
+     * @param firstName Borrower's first name
+     * @param lastName Borrower's last name
+     * @param address Borrower's address
+     * @param phone Borrower's phone number
+     * @param email Borrower's email
+     * @return The card number of the newly created borrower
+     * @throws SQLException If a database error occurs
+     */
+    public int addBorrower(String firstName, String lastName, String address, String phone, String email) throws SQLException {
+        execute("INSERT INTO Borrowers (first_name, last_name, address, phone, email) " +
+                "VALUES (?, ?, ?, ?, ?)",
+                firstName, lastName, address, phone, email);
+        
+        Map<String, Object> result = querySingle("SELECT card_number FROM Borrowers WHERE email = ?", email);
+        return ((Number) result.get("card_number")).intValue();
+    }
+    
+    /**
+     * Update an existing borrower's information.
+     * 
+     * @param cardNumber Borrower's card number
+     * @param firstName Borrower's first name
+     * @param lastName Borrower's last name
+     * @param address Borrower's address
+     * @param phone Borrower's phone number
+     * @param email Borrower's email
+     * @throws SQLException If a database error occurs
+     */
+    public void updateBorrower(int cardNumber, String firstName, String lastName, 
+                              String address, String phone, String email) throws SQLException {
+        execute("UPDATE Borrowers SET first_name = ?, last_name = ?, address = ?, phone = ?, email = ? " +
+                "WHERE card_number = ?",
+                firstName, lastName, address, phone, email, cardNumber);
+    }
+    
+    // ========== Borrowing Operations ==========
+    
+    /**
+     * Borrow a book for a borrower.
+     * 
+     * @param bookId The ID of the book to borrow
+     * @param borrowerId The ID of the borrower
+     * @param dueDate The due date for the book
+     * @return true if successful, false if the book is not available
+     * @throws SQLException If a database error occurs
+     */
+    public boolean borrowBook(int bookId, int borrowerId, String dueDate) throws SQLException {
+        // Check if the book is available
+        Map<String, Object> book = querySingle("SELECT available_copies FROM Books WHERE book_id = ?", bookId);
+        if (book == null || ((Number) book.get("available_copies")).intValue() <= 0) {
+            return false;
+        }
+        
+        // Create a reservation
+        execute("INSERT INTO Reservations (book_id, borrower_id, checkout_date, due_date, status) " +
+                "VALUES (?, ?, CURRENT_TIMESTAMP, ?, 'active')",
+                bookId, borrowerId, dueDate);
+        
+        // Update available copies
+        execute("UPDATE Books SET available_copies = available_copies - 1 WHERE book_id = ?", bookId);
+        
+        return true;
+    }
+    
+    /**
+     * Return a borrowed book.
+     * 
+     * @param reservationId The ID of the reservation to return
+     * @return true if successful, false if the reservation doesn't exist
+     * @throws SQLException If a database error occurs
+     */
+    public boolean returnBook(int reservationId) throws SQLException {
+        // Get the reservation
+        Map<String, Object> reservation = querySingle(
+                "SELECT book_id, status FROM Reservations WHERE reservation_id = ?", reservationId);
+        
+        if (reservation == null || !"active".equals(reservation.get("status"))) {
+            return false;
+        }
+        
+        int bookId = ((Number) reservation.get("book_id")).intValue();
+        
+        // Update the reservation
+        execute("UPDATE Reservations SET return_date = CURRENT_TIMESTAMP, status = 'returned' " +
+                "WHERE reservation_id = ?", reservationId);
+        
+        // Update available copies
+        execute("UPDATE Books SET available_copies = available_copies + 1 WHERE book_id = ?", bookId);
+        
+        return true;
+    }
+    
+    /**
+     * Get all active loans for a borrower.
+     * 
+     * @param borrowerId The ID of the borrower
+     * @return List of active loans
+     * @throws SQLException If a database error occurs
+     */
+    public List<Map<String, Object>> getBorrowerActiveLoans(int borrowerId) throws SQLException {
+        String sql = "SELECT r.reservation_id, r.checkout_date, r.due_date, " +
+                "b.book_id, b.title, b.isbn, " +
+                "GROUP_CONCAT(a.first_name || ' ' || a.last_name, ', ') as authors " +
+                "FROM Reservations r " +
+                "JOIN Books b ON r.book_id = b.book_id " +
+                "LEFT JOIN BookAuthors ba ON b.book_id = ba.book_id " +
+                "LEFT JOIN Authors a ON ba.author_id = a.author_id " +
+                "WHERE r.borrower_id = ? AND r.status = 'active' " +
+                "GROUP BY r.reservation_id";
+        
+        return queryMultiple(sql, borrowerId);
+    }
+    
+    /**
+     * Get borrowing history for a borrower.
+     * 
+     * @param borrowerId The ID of the borrower
+     * @return List of all loans (active and returned)
+     * @throws SQLException If a database error occurs
+     */
+    public List<Map<String, Object>> getBorrowerHistory(int borrowerId) throws SQLException {
+        String sql = "SELECT r.reservation_id, r.checkout_date, r.due_date, r.return_date, r.status, " +
+                "b.book_id, b.title, b.isbn, " +
+                "GROUP_CONCAT(a.first_name || ' ' || a.last_name, ', ') as authors " +
+                "FROM Reservations r " +
+                "JOIN Books b ON r.book_id = b.book_id " +
+                "LEFT JOIN BookAuthors ba ON b.book_id = ba.book_id " +
+                "LEFT JOIN Authors a ON ba.author_id = a.author_id " +
+                "WHERE r.borrower_id = ? " +
+                "GROUP BY r.reservation_id " +
+                "ORDER BY r.checkout_date DESC";
+        
+        return queryMultiple(sql, borrowerId);
+    }
 }
