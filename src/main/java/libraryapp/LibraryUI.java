@@ -373,6 +373,7 @@ public class LibraryUI extends Application {
         // Create a new TableView for books
         TableView<BookData> booksTableView = new TableView<>();
         booksTableView.setPrefHeight(booksTable.getPrefHeight());
+        booksTableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         
         TableColumn<BookData, String> titleColumn = new TableColumn<>("Title");
         titleColumn.setCellValueFactory(new PropertyValueFactory<>("title"));
@@ -706,10 +707,10 @@ public class LibraryUI extends Application {
     // ========== Action Methods ==========
     
     private void borrowSelectedBook() {
-        BookData selectedBook = booksTable.getSelectionModel().getSelectedItem();
+        List<BookData> selectedBooks = new ArrayList<>(booksTable.getSelectionModel().getSelectedItems());
         
-        if (selectedBook == null) {
-            showError("No Selection", "Please select a book to borrow");
+        if (selectedBooks.isEmpty()) {
+            showError("No Selection", "Please select at least one book to borrow");
             return;
         }
         
@@ -722,18 +723,35 @@ public class LibraryUI extends Application {
         LocalDate dueDate = LocalDate.now().plusDays(30);
         String dueDateStr = dueDate.format(DateTimeFormatter.ISO_LOCAL_DATE);
         
-        try {
-            boolean success = db.borrowBook(selectedBook.getBookId(), selectedBorrower.getCardNumber(), dueDateStr);
-            
-            if (success) {
-                updateStatus("Book '" + selectedBook.getTitle() + "' borrowed by " + selectedBorrower.getFullName());
-                refreshBooksList();
-                refreshBorrowedBooks();
-            } else {
-                showError("Borrow Failed", "This book is not available for borrowing");
+        int successCount = 0;
+        StringBuilder failedBooks = new StringBuilder();
+        
+        for (BookData book : selectedBooks) {
+            try {
+                boolean success = db.borrowBook(book.getBookId(), selectedBorrower.getCardNumber(), dueDateStr);
+                
+                if (success) {
+                    successCount++;
+                } else {
+                    if (failedBooks.length() > 0) {
+                        failedBooks.append(", ");
+                    }
+                    failedBooks.append(book.getTitle());
+                }
+            } catch (SQLException e) {
+                showError("Database Error", "Failed to borrow book: " + e.getMessage());
             }
-        } catch (SQLException e) {
-            showError("Database Error", "Failed to borrow book: " + e.getMessage());
+        }
+        
+        if (successCount > 0) {
+            updateStatus(successCount + " book(s) borrowed by " + selectedBorrower.getFullName());
+            refreshBooksList();
+            refreshBorrowedBooks();
+        }
+        
+        if (failedBooks.length() > 0) {
+            showError("Some Books Not Available", 
+                    "The following books are not available for borrowing: " + failedBooks.toString());
         }
     }
     
@@ -748,15 +766,14 @@ public class LibraryUI extends Application {
         
         // Return each selected book
         int successCount = 0;
-        boolean hasActiveBooks = false;
+        int inactiveCount = 0;
         
         for (LoanData loan : selectedLoans) {
-            // Skip already returned books
+            // Check if already returned
             if (!"active".equals(loan.getStatus())) {
+                inactiveCount++;
                 continue;
             }
-            
-            hasActiveBooks = true;
             
             try {
                 boolean success = db.returnBook(loan.getReservationId());
@@ -772,10 +789,10 @@ public class LibraryUI extends Application {
             updateStatus(successCount + " book(s) returned successfully");
             refreshBooksList();
             refreshBorrowedBooks();
-        } else if (hasActiveBooks) {
-            showError("Return Failed", "Failed to return any books");
-        } else if (!selectedLoans.isEmpty()) {
+        } else if (inactiveCount == selectedLoans.size()) {
             showError("No Active Books", "The selected books have already been returned");
+        } else {
+            showError("Return Failed", "Failed to return any books");
         }
     }
     
