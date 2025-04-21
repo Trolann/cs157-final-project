@@ -22,34 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * JavaFX UI for the Library Management System based on the provided mockup.
- * 
- * The UI is structured as follows:
- * - Left panel: Book search and results
- *   - Search field for books by author, category, etc.
- *   - Table showing search results
- *   - If the search box is blank and author is selected, shows all authors
- *   - Same for category, etc.
- *   - Selecting a book and clicking "Borrow" borrows it to the selected borrower
- *     (or errors out if no borrower selected)
- * 
- * - Middle panel: Action buttons for borrowing/returning
- *   - Borrow button: Moves selected book to the borrower
- *   - Return button: Returns selected book from borrower
- * 
- * - Right panel: Borrower information
- *   - Search field for borrowers
- *   - Selected borrower display
- *   - Toggle for viewing history
- *   - Table showing borrowed books
- *   - Only borrowed books are shown here
- *   - Selecting a book and clicking "Return" returns it
- *   - If view history is toggled, shows history below borrowed books
- *   - Historical books cannot be selected
- * 
- * - Bottom panel: Action buttons for creating new items
- *   - New Category, Author, Book, Borrower buttons
- *   - Edit Borrower button
+ * JavaFX UI for the Library Management System
  */
 public class LibraryUI extends Application {
     
@@ -138,7 +111,8 @@ public class LibraryUI extends Application {
         
         // Search field
         bookSearchField = new TextField();
-        bookSearchField.setPromptText("Search box");
+        // Searvch for <whatever is in searchTypeComboBox>
+        bookSearchField.setPromptText("Search for " + searchTypeComboBox.getValue());
         
         // Search results area
         booksTable = new TableView<>();
@@ -158,6 +132,8 @@ public class LibraryUI extends Application {
         isbnColumn.setPrefWidth(80);
         
         booksTable.getColumns().addAll(titleColumn, authorColumn, isbnColumn);
+        booksTable.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+
         
         // Create dynamic columns based on search type
         searchTypeComboBox.setOnAction(e -> {
@@ -219,7 +195,7 @@ public class LibraryUI extends Application {
     private VBox createMiddlePanel() {
         VBox panel = new VBox(20);
         panel.setPadding(new Insets(10));
-        panel.setPrefWidth(100);
+        panel.setPrefWidth(150);
         panel.setAlignment(Pos.CENTER);
         
         // Add vertical spacing to align buttons with tables
@@ -227,8 +203,10 @@ public class LibraryUI extends Application {
         spacer.setPrefHeight(100);
         
         // Borrow/Return buttons
-        Button borrowButton = new Button("Borrow >>>");
-        Button returnButton = new Button("<<< Return");
+        Button borrowButton = new Button("Borrow >>>>");
+        Button returnButton = new Button("<<<< Return");
+        borrowButton.setPrefWidth(120);
+        returnButton.setPrefWidth(120);
         
         // Add action handlers
         borrowButton.setOnAction(e -> borrowSelectedBook());
@@ -261,7 +239,7 @@ public class LibraryUI extends Application {
         
         // Selected borrower
         HBox borrowerBox = new HBox(10);
-        selectedBorrowerLabel = new Label("Selected Borrower (blank at start)");
+        selectedBorrowerLabel = new Label("Selected A Borrower");
         viewHistoryToggle = new CheckBox("View History");
         borrowerBox.getChildren().addAll(selectedBorrowerLabel, viewHistoryToggle);
         
