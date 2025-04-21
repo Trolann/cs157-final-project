@@ -1191,6 +1191,14 @@ public class LibraryUI extends Application {
     }
     
     public static void main(String[] args) {
+        LibraryDatabase db = new LibraryDatabase();
+        try {
+            db.initializeDatabase();
+            db.seedDatabase();
+        } catch (SQLException e) {
+            System.err.println("Failed to initialize database: " + e.getMessage());
+            return;
+        }
         launch(args);
     }
     
