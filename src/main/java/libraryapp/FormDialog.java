@@ -73,12 +73,6 @@ public class FormDialog extends Dialog<Boolean> {
             }
             return false;
         });
-        
-        // Add a label at the bottom explaining this is just a UI mockup
-        Label mockupLabel = new Label("This is a UI mockup with no actual functionality");
-        mockupLabel.setStyle("-fx-font-style: italic; -fx-text-fill: gray;");
-        GridPane.setConstraints(mockupLabel, 0, 10, 2, 1);
-        formGrid.getChildren().add(mockupLabel);
     }
     
     /**
