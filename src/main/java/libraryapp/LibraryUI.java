@@ -379,6 +379,9 @@ public class LibraryUI extends Application {
     private void setupAuthorsTable() {
         booksTable.getColumns().clear();
         
+        // Create a new TableView for authors with the correct type
+        TableView<AuthorData> authorsTable = new TableView<>();
+        
         TableColumn<AuthorData, String> nameColumn = new TableColumn<>("Name");
         nameColumn.setCellValueFactory(new PropertyValueFactory<>("fullName"));
         nameColumn.setPrefWidth(150);
@@ -391,14 +394,21 @@ public class LibraryUI extends Application {
         biographyColumn.setCellValueFactory(new PropertyValueFactory<>("biography"));
         biographyColumn.setPrefWidth(200);
         
-        // Add columns individually to avoid type mismatch
-        booksTable.getColumns().add(nameColumn);
-        booksTable.getColumns().add(birthYearColumn);
-        booksTable.getColumns().add(biographyColumn);
+        authorsTable.getColumns().addAll(nameColumn, birthYearColumn, biographyColumn);
+        
+        // Use unchecked cast - this is safe because we're only displaying the data
+        @SuppressWarnings("unchecked")
+        TableView<BookData> bookDataView = (TableView<BookData>)(TableView<?>)authorsTable;
+        
+        // Replace the books table with our authors table
+        booksTable = bookDataView;
     }
     
     private void setupCategoriesTable() {
         booksTable.getColumns().clear();
+        
+        // Create a new TableView for categories with the correct type
+        TableView<CategoryData> categoriesTable = new TableView<>();
         
         TableColumn<CategoryData, String> nameColumn = new TableColumn<>("Category Name");
         nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
@@ -408,9 +418,14 @@ public class LibraryUI extends Application {
         descriptionColumn.setCellValueFactory(new PropertyValueFactory<>("description"));
         descriptionColumn.setPrefWidth(200);
         
-        // Add columns individually to avoid type mismatch
-        booksTable.getColumns().add(nameColumn);
-        booksTable.getColumns().add(descriptionColumn);
+        categoriesTable.getColumns().addAll(nameColumn, descriptionColumn);
+        
+        // Use unchecked cast - this is safe because we're only displaying the data
+        @SuppressWarnings("unchecked")
+        TableView<BookData> bookDataView = (TableView<BookData>)(TableView<?>)categoriesTable;
+        
+        // Replace the books table with our categories table
+        booksTable = bookDataView;
     }
     
     // ========== Data Refresh Methods ==========
@@ -440,7 +455,9 @@ public class LibraryUI extends Application {
                 authorsList.add(new AuthorData(author));
             }
             
-            booksTable.setItems((ObservableList) authorsList);
+            @SuppressWarnings("unchecked")
+            ObservableList<BookData> castedList = (ObservableList<BookData>)(ObservableList<?>)authorsList;
+            booksTable.setItems(castedList);
             updateStatus("Loaded " + authors.size() + " authors");
         } catch (SQLException e) {
             showError("Database Error", "Failed to load authors: " + e.getMessage());
@@ -456,7 +473,9 @@ public class LibraryUI extends Application {
                 categoriesList.add(new CategoryData(category));
             }
             
-            booksTable.setItems((ObservableList) categoriesList);
+            @SuppressWarnings("unchecked")
+            ObservableList<BookData> castedList = (ObservableList<BookData>)(ObservableList<?>)categoriesList;
+            booksTable.setItems(castedList);
             updateStatus("Loaded " + categories.size() + " categories");
         } catch (SQLException e) {
             showError("Database Error", "Failed to load categories: " + e.getMessage());
@@ -541,7 +560,9 @@ public class LibraryUI extends Application {
                 authorsList.add(new AuthorData(author));
             }
             
-            booksTable.setItems((ObservableList) authorsList);
+            @SuppressWarnings("unchecked")
+            ObservableList<BookData> castedList = (ObservableList<BookData>)(ObservableList<?>)authorsList;
+            booksTable.setItems(castedList);
             updateStatus("Found " + authors.size() + " authors matching '" + searchTerm + "'");
         } catch (SQLException e) {
             showError("Search Error", "Failed to search authors: " + e.getMessage());
@@ -562,7 +583,9 @@ public class LibraryUI extends Application {
                 categoriesList.add(new CategoryData(category));
             }
             
-            booksTable.setItems((ObservableList) categoriesList);
+            @SuppressWarnings("unchecked")
+            ObservableList<BookData> castedList = (ObservableList<BookData>)(ObservableList<?>)categoriesList;
+            booksTable.setItems(castedList);
             updateStatus("Found " + categories.size() + " categories matching '" + searchTerm + "'");
         } catch (SQLException e) {
             showError("Search Error", "Failed to search categories: " + e.getMessage());
