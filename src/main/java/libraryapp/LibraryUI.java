@@ -264,6 +264,7 @@ public class LibraryUI extends Application {
         // Borrower's books table
         borrowedBooksTable = new TableView<>();
         borrowedBooksTable.setPrefHeight(150);
+        borrowedBooksTable.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE); // Enable multiple selection
         
         // Add table columns for borrowed books
         TableColumn<LoanData, String> bookTitleColumn = new TableColumn<>("Book Title");
@@ -359,7 +360,14 @@ public class LibraryUI extends Application {
     // ========== Table Setup Methods ==========
     
     private void setupBooksTable() {
-        booksTable.getColumns().clear();
+        // Store the parent of the current table
+        Parent parent = booksTable.getParent();
+        VBox container = (VBox) parent;
+        int index = container.getChildren().indexOf(booksTable);
+        
+        // Create a new TableView for books
+        TableView<BookData> booksTableView = new TableView<>();
+        booksTableView.setPrefHeight(booksTable.getPrefHeight());
         
         TableColumn<BookData, String> titleColumn = new TableColumn<>("Title");
         titleColumn.setCellValueFactory(new PropertyValueFactory<>("title"));
@@ -373,14 +381,24 @@ public class LibraryUI extends Application {
         isbnColumn.setCellValueFactory(new PropertyValueFactory<>("isbn"));
         isbnColumn.setPrefWidth(80);
         
-        booksTable.getColumns().addAll(titleColumn, authorColumn, isbnColumn);
+        booksTableView.getColumns().addAll(titleColumn, authorColumn, isbnColumn);
+        
+        // Replace the books table in the UI
+        container.getChildren().set(index, booksTableView);
+        
+        // Update the reference
+        booksTable = booksTableView;
     }
     
     private void setupAuthorsTable() {
-        booksTable.getColumns().clear();
+        // Store the parent of the current table
+        Parent parent = booksTable.getParent();
+        VBox container = (VBox) parent;
+        int index = container.getChildren().indexOf(booksTable);
         
         // Create a new TableView for authors with the correct type
         TableView<AuthorData> authorsTable = new TableView<>();
+        authorsTable.setPrefHeight(booksTable.getPrefHeight());
         
         TableColumn<AuthorData, String> nameColumn = new TableColumn<>("Name");
         nameColumn.setCellValueFactory(new PropertyValueFactory<>("fullName"));
@@ -396,19 +414,22 @@ public class LibraryUI extends Application {
         
         authorsTable.getColumns().addAll(nameColumn, birthYearColumn, biographyColumn);
         
-        // Use unchecked cast - this is safe because we're only displaying the data
-        @SuppressWarnings("unchecked")
-        TableView<BookData> bookDataView = (TableView<BookData>)(TableView<?>)authorsTable;
+        // Replace the books table in the UI
+        container.getChildren().set(index, authorsTable);
         
-        // Replace the books table with our authors table
-        booksTable = bookDataView;
+        // Update the reference
+        booksTable = (TableView<BookData>)(TableView<?>)authorsTable;
     }
     
     private void setupCategoriesTable() {
-        booksTable.getColumns().clear();
+        // Store the parent of the current table
+        Parent parent = booksTable.getParent();
+        VBox container = (VBox) parent;
+        int index = container.getChildren().indexOf(booksTable);
         
         // Create a new TableView for categories with the correct type
         TableView<CategoryData> categoriesTable = new TableView<>();
+        categoriesTable.setPrefHeight(booksTable.getPrefHeight());
         
         TableColumn<CategoryData, String> nameColumn = new TableColumn<>("Category Name");
         nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
@@ -420,12 +441,11 @@ public class LibraryUI extends Application {
         
         categoriesTable.getColumns().addAll(nameColumn, descriptionColumn);
         
-        // Use unchecked cast - this is safe because we're only displaying the data
-        @SuppressWarnings("unchecked")
-        TableView<BookData> bookDataView = (TableView<BookData>)(TableView<?>)categoriesTable;
+        // Replace the books table in the UI
+        container.getChildren().set(index, categoriesTable);
         
-        // Replace the books table with our categories table
-        booksTable = bookDataView;
+        // Update the reference
+        booksTable = (TableView<BookData>)(TableView<?>)categoriesTable;
     }
     
     // ========== Data Refresh Methods ==========
@@ -513,11 +533,40 @@ public class LibraryUI extends Application {
             }
             
             ObservableList<LoanData> loansList = FXCollections.observableArrayList();
+            
+            // Sort loans: active first, then returned
+            List<LoanData> activeLoans = new ArrayList<>();
+            List<LoanData> returnedLoans = new ArrayList<>();
+            
             for (Map<String, Object> loan : loans) {
-                loansList.add(new LoanData(loan));
+                LoanData loanData = new LoanData(loan);
+                if ("active".equals(loanData.getStatus())) {
+                    activeLoans.add(loanData);
+                } else {
+                    returnedLoans.add(loanData);
+                }
             }
             
+            // Add active loans first, then returned loans
+            loansList.addAll(activeLoans);
+            loansList.addAll(returnedLoans);
+            
             borrowedBooksTable.setItems(loansList);
+            
+            // Set cell factory to color returned items red
+            borrowedBooksTable.setRowFactory(tv -> new TableRow<LoanData>() {
+                @Override
+                protected void updateItem(LoanData item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (item == null || empty) {
+                        setStyle("");
+                    } else if (!"active".equals(item.getStatus())) {
+                        setStyle("-fx-text-fill: red;");
+                    } else {
+                        setStyle("");
+                    }
+                }
+            });
         } catch (SQLException e) {
             showError("Database Error", "Failed to load borrowed books: " + e.getMessage());
         }
@@ -648,25 +697,38 @@ public class LibraryUI extends Application {
     }
     
     private void returnSelectedBook() {
-        LoanData selectedLoan = borrowedBooksTable.getSelectionModel().getSelectedItem();
+        // Get all selected loans
+        ObservableList<LoanData> selectedLoans = borrowedBooksTable.getSelectionModel().getSelectedItems();
         
-        if (selectedLoan == null) {
-            showError("No Selection", "Please select a book to return");
+        if (selectedLoans.isEmpty()) {
+            showError("No Selection", "Please select at least one book to return");
             return;
         }
         
-        try {
-            boolean success = db.returnBook(selectedLoan.getReservationId());
-            
-            if (success) {
-                updateStatus("Book '" + selectedLoan.getTitle() + "' returned");
-                refreshBooksList();
-                refreshBorrowedBooks();
-            } else {
-                showError("Return Failed", "Failed to return the book");
+        // Return each selected book
+        int successCount = 0;
+        for (LoanData loan : selectedLoans) {
+            // Skip already returned books
+            if (!"active".equals(loan.getStatus())) {
+                continue;
             }
-        } catch (SQLException e) {
-            showError("Database Error", "Failed to return book: " + e.getMessage());
+            
+            try {
+                boolean success = db.returnBook(loan.getReservationId());
+                if (success) {
+                    successCount++;
+                }
+            } catch (SQLException e) {
+                showError("Database Error", "Failed to return book: " + e.getMessage());
+            }
+        }
+        
+        if (successCount > 0) {
+            updateStatus(successCount + " book(s) returned successfully");
+            refreshBooksList();
+            refreshBorrowedBooks();
+        } else if (!selectedLoans.isEmpty()) {
+            showError("Return Failed", "Failed to return any books");
         }
     }
     
