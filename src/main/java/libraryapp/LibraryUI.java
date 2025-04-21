@@ -194,25 +194,7 @@ public class LibraryUI extends Application {
             newItemButton.setText("New " + newValue);
         });
         
-        // Add double-click handler to open edit form
-        booksTable.setRowFactory(tv -> {
-            TableRow<BookData> row = new TableRow<>();
-            row.setOnMouseClicked(event -> {
-                if (event.getClickCount() == 2 && (!row.isEmpty())) {
-                    Object selectedItem = row.getItem();
-                    String type = searchTypeComboBox.getValue();
-                    
-                    if ("Books".equals(type) && selectedItem instanceof BookData) {
-                        showBookForm((BookData) selectedItem);
-                    } else if ("Authors".equals(type) && selectedItem instanceof AuthorData) {
-                        showAuthorForm((AuthorData) selectedItem);
-                    } else if ("Categories".equals(type) && selectedItem instanceof CategoryData) {
-                        showCategoryForm((CategoryData) selectedItem);
-                    }
-                }
-            });
-            return row;
-        });
+        // We'll set up the double-click handlers in the specific table setup methods
         
         // Add action handlers for the popup forms
         newItemButton.setOnAction(e -> {
@@ -424,6 +406,18 @@ public class LibraryUI extends Application {
         
         booksTableView.getColumns().addAll(titleColumn, authorColumn, isbnColumn);
         
+        // Add double-click handler for books
+        booksTableView.setRowFactory(tv -> {
+            TableRow<BookData> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && (!row.isEmpty())) {
+                    BookData book = row.getItem();
+                    showBookForm(book);
+                }
+            });
+            return row;
+        });
+        
         // Replace the books table in the UI
         container.getChildren().set(index, booksTableView);
         
@@ -455,6 +449,18 @@ public class LibraryUI extends Application {
         
         authorsTable.getColumns().addAll(nameColumn, birthYearColumn, biographyColumn);
         
+        // Add double-click handler for authors
+        authorsTable.setRowFactory(tv -> {
+            TableRow<AuthorData> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && (!row.isEmpty())) {
+                    AuthorData author = row.getItem();
+                    showAuthorForm(author);
+                }
+            });
+            return row;
+        });
+        
         // Replace the books table in the UI
         container.getChildren().set(index, authorsTable);
         
@@ -481,6 +487,18 @@ public class LibraryUI extends Application {
         descriptionColumn.setPrefWidth(200);
         
         categoriesTable.getColumns().addAll(nameColumn, descriptionColumn);
+        
+        // Add double-click handler for categories
+        categoriesTable.setRowFactory(tv -> {
+            TableRow<CategoryData> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && (!row.isEmpty())) {
+                    CategoryData category = row.getItem();
+                    showCategoryForm(category);
+                }
+            });
+            return row;
+        });
         
         // Replace the books table in the UI
         container.getChildren().set(index, categoriesTable);
@@ -970,6 +988,50 @@ public class LibraryUI extends Application {
             showError("Database Error", "Failed to load categories: " + e.getMessage());
         }
         
+        // Add authors selection
+        ListView<AuthorData> authorsListView = new ListView<>();
+        authorsListView.setPrefHeight(100);
+        authorsListView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        
+        try {
+            List<Map<String, Object>> allAuthors = db.getAllAuthors();
+            ObservableList<AuthorData> authorsList = FXCollections.observableArrayList();
+            for (Map<String, Object> author : allAuthors) {
+                authorsList.add(new AuthorData(author));
+            }
+            
+            authorsListView.setItems(authorsList);
+            
+            // Set cell factory to display author name
+            authorsListView.setCellFactory(lv -> new ListCell<AuthorData>() {
+                @Override
+                protected void updateItem(AuthorData item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (item == null || empty) {
+                        setText(null);
+                    } else {
+                        setText(item.getFullName());
+                    }
+                }
+            });
+            
+            dialog.addNode("Authors (select multiple)", authorsListView, 6);
+            
+            // If editing, select the current authors
+            if (book != null && book.getAuthors() != null) {
+                String[] bookAuthors = book.getAuthors().split(", ");
+                for (String authorName : bookAuthors) {
+                    for (AuthorData author : authorsList) {
+                        if (author.getFullName().equals(authorName)) {
+                            authorsListView.getSelectionModel().select(author);
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            showError("Database Error", "Failed to load authors: " + e.getMessage());
+        }
+        
         dialog.setResultConverter(buttonType -> {
             if (buttonType.getButtonData() == ButtonBar.ButtonData.OK_DONE) {
                 try {
@@ -1015,9 +1077,11 @@ public class LibraryUI extends Application {
                         }
                     }
                     
-                    // For simplicity, we're using the existing authors when editing
-                    // In a real application, you would have a multi-select for authors
+                    // Get selected authors
                     List<Integer> authorIds = new ArrayList<>();
+                    for (AuthorData author : authorsListView.getSelectionModel().getSelectedItems()) {
+                        authorIds.add(author.getAuthorId());
+                    }
                     
                     if (book == null) {
                         // Add new book

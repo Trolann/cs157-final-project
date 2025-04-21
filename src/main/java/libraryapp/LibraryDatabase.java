@@ -494,13 +494,16 @@ public class LibraryDatabase extends SQLiteWrapper {
                 "WHERE book_id = ?",
                 title, isbn, publicationYear, publisher, totalCopies, newAvailable, categoryId, bookId);
         
-        // Update book-author relationships
-        // First, remove all existing relationships
-        execute("DELETE FROM BookAuthors WHERE book_id = ?", bookId);
-        
-        // Then add the new relationships
-        for (int authorId : authorIds) {
-            execute("INSERT INTO BookAuthors (book_id, author_id) VALUES (?, ?)", bookId, authorId);
+        // Only update author relationships if authorIds is not empty
+        if (!authorIds.isEmpty()) {
+            // Update book-author relationships
+            // First, remove all existing relationships
+            execute("DELETE FROM BookAuthors WHERE book_id = ?", bookId);
+            
+            // Then add the new relationships
+            for (int authorId : authorIds) {
+                execute("INSERT INTO BookAuthors (book_id, author_id) VALUES (?, ?)", bookId, authorId);
+            }
         }
     }
     
