@@ -754,52 +754,62 @@ public class LibraryUI extends Application {
                     "The following books are not available for borrowing: " + failedBooks.toString());
         }
     }
-    
+
     private void returnSelectedBook() {
         // Get all selected loans
         List<LoanData> selectedLoans = new ArrayList<>(borrowedBooksTable.getSelectionModel().getSelectedItems());
-        
+
         if (selectedLoans.isEmpty()) {
             showError("No Selection", "Please select at least one book to return");
             return;
         }
-        
+
+        // Debug selected loans status
+        for (LoanData loan : selectedLoans) {
+            System.out.println("Selected loan: " + loan.getTitle() + ", Status: " + loan.getStatus());
+        }
+
         // Return each selected book
         int successCount = 0;
-        int inactiveCount = 0;
         int failCount = 0;
-        
+
         for (LoanData loan : selectedLoans) {
-            // Check if already returned
-            if (!"active".equals(loan.getStatus())) {
-                inactiveCount++;
-                continue;
-            }
-            
             try {
+                // Try to return regardless of status check - might be a status reporting issue
                 boolean success = db.returnBook(loan.getReservationId());
                 if (success) {
                     successCount++;
+                    System.out.println("Successfully returned: " + loan.getTitle());
                 } else {
                     failCount++;
+                    System.out.println("Failed to return: " + loan.getTitle());
                 }
             } catch (SQLException e) {
                 showError("Database Error", "Failed to return book: " + e.getMessage());
+                System.out.println("SQL error returning book: " + e.getMessage());
                 failCount++;
             }
         }
-        
+
         // Refresh the UI regardless of success/failure to ensure consistent state
         refreshBooksList();
+
+        // Always refresh borrowed books view to show current state
         refreshBorrowedBooks();
-        
+
         // Show appropriate message based on results
         if (successCount > 0) {
             updateStatus(successCount + " book(s) returned successfully");
-        } else if (inactiveCount > 0 && inactiveCount == selectedLoans.size()) {
-            showError("No Active Books", "The selected books have already been returned");
+
+            // Toggle history view if not already selected to show returned books
+            if (!viewHistoryToggle.isSelected()) {
+                viewHistoryToggle.setSelected(true);
+                refreshBorrowedBooks(); // Refresh again with history view
+            }
         } else if (failCount > 0) {
             showError("Return Failed", "Failed to return " + failCount + " book(s)");
+        } else {
+            showError("Return Failed", "Could not return any of the selected books. They may be unavailable or already returned.");
         }
     }
     
