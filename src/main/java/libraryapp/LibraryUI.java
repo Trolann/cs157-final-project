@@ -203,14 +203,11 @@ public class LibraryUI extends Application {
                     String type = searchTypeComboBox.getValue();
                     
                     if ("Books".equals(type) && selectedItem instanceof BookData) {
-                        // TODO: Implement edit book form
-                        showError("Not Implemented", "Edit Book functionality is not yet implemented");
+                        showBookForm((BookData) selectedItem);
                     } else if ("Authors".equals(type) && selectedItem instanceof AuthorData) {
-                        // TODO: Implement edit author form
-                        showError("Not Implemented", "Edit Author functionality is not yet implemented");
+                        showAuthorForm((AuthorData) selectedItem);
                     } else if ("Categories".equals(type) && selectedItem instanceof CategoryData) {
-                        // TODO: Implement edit category form
-                        showError("Not Implemented", "Edit Category functionality is not yet implemented");
+                        showCategoryForm((CategoryData) selectedItem);
                     }
                 }
             });
@@ -779,10 +776,20 @@ public class LibraryUI extends Application {
     // ========== Form Dialog Methods ==========
     
     private void showCategoryForm() {
-        FormDialog dialog = new FormDialog("New Category");
+        showCategoryForm(null);
+    }
+    
+    private void showCategoryForm(CategoryData category) {
+        FormDialog dialog = new FormDialog(category == null ? "New Category" : "Edit Category");
         
         TextField nameField = dialog.addTextField("Category Name", 0);
         TextField descriptionField = dialog.addTextField("Description", 1);
+        
+        // If editing, populate fields
+        if (category != null) {
+            nameField.setText(category.getName());
+            descriptionField.setText(category.getDescription());
+        }
         
         dialog.setResultConverter(buttonType -> {
             if (buttonType.getButtonData() == ButtonBar.ButtonData.OK_DONE) {
@@ -795,12 +802,20 @@ public class LibraryUI extends Application {
                         return false;
                     }
                     
-                    db.addCategory(name, description);
-                    updateStatus("Category '" + name + "' added successfully");
+                    if (category == null) {
+                        // Add new category
+                        db.addCategory(name, description);
+                        updateStatus("Category '" + name + "' added successfully");
+                    } else {
+                        // Update existing category
+                        db.updateCategory(category.getCategoryId(), name, description);
+                        updateStatus("Category '" + name + "' updated successfully");
+                    }
+                    
                     refreshCategoriesList();
                     return true;
                 } catch (SQLException e) {
-                    showError("Database Error", "Failed to add category: " + e.getMessage());
+                    showError("Database Error", "Failed to save category: " + e.getMessage());
                     return false;
                 }
             }
@@ -811,12 +826,24 @@ public class LibraryUI extends Application {
     }
     
     private void showAuthorForm() {
-        FormDialog dialog = new FormDialog("New Author");
+        showAuthorForm(null);
+    }
+    
+    private void showAuthorForm(AuthorData author) {
+        FormDialog dialog = new FormDialog(author == null ? "New Author" : "Edit Author");
         
         TextField firstNameField = dialog.addTextField("First Name", 0);
         TextField lastNameField = dialog.addTextField("Last Name", 1);
         TextField birthYearField = dialog.addTextField("Birth Year", 2);
         TextField biographyField = dialog.addTextField("Biography", 3);
+        
+        // If editing, populate fields
+        if (author != null) {
+            firstNameField.setText(author.getFirstName());
+            lastNameField.setText(author.getLastName());
+            birthYearField.setText(author.getBirthYear() > 0 ? String.valueOf(author.getBirthYear()) : "");
+            biographyField.setText(author.getBiography());
+        }
         
         dialog.setResultConverter(buttonType -> {
             if (buttonType.getButtonData() == ButtonBar.ButtonData.OK_DONE) {
@@ -842,12 +869,20 @@ public class LibraryUI extends Application {
                         }
                     }
                     
-                    db.addAuthor(firstName, lastName, birthYear, biography);
-                    updateStatus("Author '" + firstName + " " + lastName + "' added successfully");
+                    if (author == null) {
+                        // Add new author
+                        db.addAuthor(firstName, lastName, birthYear, biography);
+                        updateStatus("Author '" + firstName + " " + lastName + "' added successfully");
+                    } else {
+                        // Update existing author
+                        db.updateAuthor(author.getAuthorId(), firstName, lastName, birthYear, biography);
+                        updateStatus("Author '" + firstName + " " + lastName + "' updated successfully");
+                    }
+                    
                     refreshAuthorsList();
                     return true;
                 } catch (SQLException e) {
-                    showError("Database Error", "Failed to add author: " + e.getMessage());
+                    showError("Database Error", "Failed to save author: " + e.getMessage());
                     return false;
                 }
             }
@@ -858,13 +893,26 @@ public class LibraryUI extends Application {
     }
     
     private void showBookForm() {
-        FormDialog dialog = new FormDialog("New Book");
+        showBookForm(null);
+    }
+    
+    private void showBookForm(BookData book) {
+        FormDialog dialog = new FormDialog(book == null ? "New Book" : "Edit Book");
         
         TextField titleField = dialog.addTextField("Title", 0);
         TextField isbnField = dialog.addTextField("ISBN", 1);
         TextField yearField = dialog.addTextField("Publication Year", 2);
         TextField publisherField = dialog.addTextField("Publisher", 3);
         TextField copiesField = dialog.addTextField("Total Copies", 4);
+        
+        // If editing, populate fields
+        if (book != null) {
+            titleField.setText(book.getTitle());
+            isbnField.setText(book.getIsbn());
+            yearField.setText(book.getPublicationYear() > 0 ? String.valueOf(book.getPublicationYear()) : "");
+            publisherField.setText(book.getPublisher());
+            copiesField.setText(String.valueOf(book.getTotalCopies()));
+        }
         
         // Add category dropdown
         ComboBox<CategoryData> categoryComboBox = new ComboBox<>();
@@ -908,6 +956,16 @@ public class LibraryUI extends Application {
             });
             
             dialog.addNode("Category", categoryComboBox, 5);
+            
+            // If editing, select the current category
+            if (book != null) {
+                for (CategoryData category : categoriesList) {
+                    if (category.getName().equals(book.getCategory())) {
+                        categoryComboBox.setValue(category);
+                        break;
+                    }
+                }
+            }
         } catch (SQLException e) {
             showError("Database Error", "Failed to load categories: " + e.getMessage());
         }
@@ -957,16 +1015,25 @@ public class LibraryUI extends Application {
                         }
                     }
                     
-                    // For simplicity, we're adding a book with a single author
+                    // For simplicity, we're using the existing authors when editing
                     // In a real application, you would have a multi-select for authors
                     List<Integer> authorIds = new ArrayList<>();
                     
-                    db.addBook(title, isbn, year, publisher, copies, category.getCategoryId(), authorIds);
-                    updateStatus("Book '" + title + "' added successfully");
+                    if (book == null) {
+                        // Add new book
+                        db.addBook(title, isbn, year, publisher, copies, category.getCategoryId(), authorIds);
+                        updateStatus("Book '" + title + "' added successfully");
+                    } else {
+                        // Update existing book
+                        db.updateBook(book.getBookId(), title, isbn, year, publisher, copies, 
+                                     category.getCategoryId(), authorIds);
+                        updateStatus("Book '" + title + "' updated successfully");
+                    }
+                    
                     refreshBooksList();
                     return true;
                 } catch (SQLException e) {
-                    showError("Database Error", "Failed to add book: " + e.getMessage());
+                    showError("Database Error", "Failed to save book: " + e.getMessage());
                     return false;
                 }
             }
