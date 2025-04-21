@@ -1,7 +1,7 @@
-package com.example;
+package libraryapp;
 
-import com.example.db.SQLiteWrapper;
 import java.sql.SQLException;
+import java.util.Map;
 
 /**
  * Main application class that demonstrates the use of the SQLite wrapper.
@@ -28,7 +28,21 @@ public class Main {
             
             System.out.println("Database initialized successfully.");
             
-            // Later, we'll add business logic layer that wraps this wrapper
+            // Add a random user
+
+            db.execute(
+                    "INSERT INTO users (name, email) VALUES (?, ?)" +
+                    "John Doe" +
+                    "john@doe.com"
+            );
+
+            // Example: Query the database
+            Map<String, Object> users = db.querySingle(
+                    "SELECT * FROM users WHERE 'john' IN email"
+            );
+            for (Map.Entry<String, Object> entry : users.entrySet()) {
+                System.out.println(entry.getKey() + ": " + entry.getValue());
+            }
             
         } catch (SQLException e) {
             System.err.println("Database error: " + e.getMessage());
