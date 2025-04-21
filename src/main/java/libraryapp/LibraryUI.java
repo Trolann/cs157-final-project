@@ -272,13 +272,72 @@ public class LibraryUI extends Application {
         bookTitleColumn.setCellValueFactory(new PropertyValueFactory<>("title"));
         bookTitleColumn.setPrefWidth(150);
         
+        // Set cell factory for each column to maintain styling
+        bookTitleColumn.setCellFactory(column -> new TableCell<LoanData, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty ? "" : item);
+                
+                TableRow<LoanData> row = getTableRow();
+                if (row != null && row.getItem() != null) {
+                    LoanData loan = row.getItem();
+                    if (!"active".equals(loan.getStatus())) {
+                        setStyle("-fx-text-fill: #888888;"); // Grey out returned books
+                    } else {
+                        setStyle("-fx-font-weight: bold;"); // Bold active loans
+                    }
+                } else {
+                    setStyle("");
+                }
+            }
+        });
+        
         TableColumn<LoanData, String> isbnColumn = new TableColumn<>("ISBN");
         isbnColumn.setCellValueFactory(new PropertyValueFactory<>("isbn"));
         isbnColumn.setPrefWidth(80);
+        isbnColumn.setCellFactory(column -> new TableCell<LoanData, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty ? "" : item);
+                
+                TableRow<LoanData> row = getTableRow();
+                if (row != null && row.getItem() != null) {
+                    LoanData loan = row.getItem();
+                    if (!"active".equals(loan.getStatus())) {
+                        setStyle("-fx-text-fill: #888888;"); // Grey out returned books
+                    } else {
+                        setStyle("-fx-font-weight: bold;"); // Bold active loans
+                    }
+                } else {
+                    setStyle("");
+                }
+            }
+        });
         
         TableColumn<LoanData, String> dueDateColumn = new TableColumn<>("Due Date");
         dueDateColumn.setCellValueFactory(new PropertyValueFactory<>("dueDate"));
         dueDateColumn.setPrefWidth(100);
+        dueDateColumn.setCellFactory(column -> new TableCell<LoanData, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty ? "" : item);
+                
+                TableRow<LoanData> row = getTableRow();
+                if (row != null && row.getItem() != null) {
+                    LoanData loan = row.getItem();
+                    if (!"active".equals(loan.getStatus())) {
+                        setStyle("-fx-text-fill: #888888;"); // Grey out returned books
+                    } else {
+                        setStyle("-fx-font-weight: bold;"); // Bold active loans
+                    }
+                } else {
+                    setStyle("");
+                }
+            }
+        });
         
         borrowedBooksTable.getColumns().addAll(bookTitleColumn, isbnColumn, dueDateColumn);
         
@@ -595,7 +654,7 @@ public class LibraryUI extends Application {
             
             borrowedBooksTable.setItems(loansList);
             
-            // Set cell factory to color returned items red
+            // Set cell factory to style rows based on loan status
             borrowedBooksTable.setRowFactory(tv -> new TableRow<LoanData>() {
                 @Override
                 protected void updateItem(LoanData item, boolean empty) {
@@ -603,9 +662,9 @@ public class LibraryUI extends Application {
                     if (item == null || empty) {
                         setStyle("");
                     } else if (!"active".equals(item.getStatus())) {
-                        setStyle("-fx-text-fill: red;");
+                        setStyle("-fx-text-fill: #888888;"); // Grey out returned books
                     } else {
-                        setStyle("");
+                        setStyle("-fx-font-weight: bold;"); // Bold active loans
                     }
                 }
             });
