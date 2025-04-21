@@ -796,7 +796,7 @@ public class LibraryUI extends Application {
         // Show appropriate message based on results
         if (successCount > 0) {
             updateStatus(successCount + " book(s) returned successfully");
-        } else if (inactiveCount == selectedLoans.size()) {
+        } else if (inactiveCount > 0 && inactiveCount == selectedLoans.size()) {
             showError("No Active Books", "The selected books have already been returned");
         } else if (failCount > 0) {
             showError("Return Failed", "Failed to return " + failCount + " book(s)");
