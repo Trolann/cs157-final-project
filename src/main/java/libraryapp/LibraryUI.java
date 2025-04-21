@@ -244,5 +244,13 @@ public class LibraryUI extends Application {
     
     public static void main(String[] args) {
         launch(args);
+//        LibraryDatabase db = new LibraryDatabase();
+//        try {
+//            db.initializeDatabase();
+//            db.seedDatabase();
+//        } catch (Exception e) {
+//            System.err.println("Error initializing database: " + e.getMessage());
+//            e.printStackTrace();
+//        }
     }
 }
