@@ -29,19 +29,24 @@ public class Main {
             System.out.println("Database initialized successfully.");
             
             // Add a random user
-
             db.execute(
-                    "INSERT INTO users (name, email) VALUES (?, ?)" +
-                    "John Doe" +
+                    "INSERT INTO users (name, email) VALUES (?, ?)",
+                    "John Doe",
                     "john@doe.com"
             );
 
             // Example: Query the database
-            Map<String, Object> users = db.querySingle(
-                    "SELECT * FROM users WHERE 'john' IN email"
+            Map<String, Object> user = db.querySingle(
+                    "SELECT * FROM users WHERE email LIKE ?",
+                    "%john%"
             );
-            for (Map.Entry<String, Object> entry : users.entrySet()) {
-                System.out.println(entry.getKey() + ": " + entry.getValue());
+            
+            if (user != null) {
+                for (Map.Entry<String, Object> entry : user.entrySet()) {
+                    System.out.println(entry.getKey() + ": " + entry.getValue());
+                }
+            } else {
+                System.out.println("No user found");
             }
             
         } catch (SQLException e) {
