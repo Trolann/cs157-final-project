@@ -6,9 +6,18 @@ import java.util.Map;
 
 /**
  * Main application class that demonstrates the use of the Library Database.
+ * This class now launches the JavaFX UI.
  */
 public class Main {
     public static void main(String[] args) {
+        // Launch the JavaFX UI
+        LibraryUI.main(args);
+    }
+    
+    /**
+     * Database initialization and example code (kept for reference)
+     */
+    public static void initializeDatabase() {
         // Create an instance of the Library Database
         LibraryDatabase db = new LibraryDatabase();
         

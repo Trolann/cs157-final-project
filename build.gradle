@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'application'
+    id 'org.openjfx.javafxplugin' version '0.0.14'
 }
 
 group = 'com.example'
@@ -23,8 +24,13 @@ java {
     }
 }
 
+javafx {
+    version = '21.0.2'
+    modules = ['javafx.controls', 'javafx.fxml']
+}
+
 application {
-    mainClass = 'libraryapp.Main'
+    mainClass = 'libraryapp.LibraryUI'
     applicationDefaultJvmArgs = ['--enable-native-access=ALL-UNNAMED']
 }
 
