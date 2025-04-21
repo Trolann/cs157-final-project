@@ -59,7 +59,7 @@ public class LibraryUI extends Application {
         // Right side - Borrower search and results
         VBox rightPanel = createRightPanel();
         
-        // Bottom panel - Action buttons
+        // Bottom panel - Status bar
         HBox bottomPanel = createBottomPanel();
         
         // Add panels to columns layout
@@ -86,8 +86,13 @@ public class LibraryUI extends Application {
         panel.setPadding(new Insets(10));
         panel.setPrefWidth(350);
         
+        // Search type dropdown
+        Label searchLabel = new Label("Search Type");
+        ComboBox<String> searchTypeComboBox = new ComboBox<>();
+        searchTypeComboBox.getItems().addAll("Books", "Authors", "Categories");
+        searchTypeComboBox.setValue("Books");
+        
         // Search field
-        Label searchLabel = new Label("Search Field (Author, category, etc)");
         TextField searchField = new TextField();
         searchField.setPromptText("Search box");
         
@@ -95,18 +100,55 @@ public class LibraryUI extends Application {
         TableView<Object> resultsTable = new TableView<>();
         resultsTable.setPrefHeight(300);
         
-        // Add table columns
-        TableColumn<Object, String> titleColumn = new TableColumn<>("Title");
-        TableColumn<Object, String> authorColumn = new TableColumn<>("Author");
-        TableColumn<Object, String> isbnColumn = new TableColumn<>("ISBN");
-        resultsTable.getColumns().addAll(titleColumn, authorColumn, isbnColumn);
+        // Create dynamic columns based on search type
+        searchTypeComboBox.setOnAction(e -> {
+            resultsTable.getColumns().clear();
+            
+            switch(searchTypeComboBox.getValue()) {
+                case "Books":
+                    TableColumn<Object, String> titleColumn = new TableColumn<>("Title");
+                    TableColumn<Object, String> authorColumn = new TableColumn<>("Author");
+                    TableColumn<Object, String> isbnColumn = new TableColumn<>("ISBN");
+                    resultsTable.getColumns().addAll(titleColumn, authorColumn, isbnColumn);
+                    break;
+                case "Authors":
+                    TableColumn<Object, String> nameColumn = new TableColumn<>("Name");
+                    TableColumn<Object, String> birthYearColumn = new TableColumn<>("Birth Year");
+                    TableColumn<Object, String> countryColumn = new TableColumn<>("Country");
+                    resultsTable.getColumns().addAll(nameColumn, birthYearColumn, countryColumn);
+                    break;
+                case "Categories":
+                    TableColumn<Object, String> categoryNameColumn = new TableColumn<>("Category Name");
+                    TableColumn<Object, String> descriptionColumn = new TableColumn<>("Description");
+                    resultsTable.getColumns().addAll(categoryNameColumn, descriptionColumn);
+                    break;
+            }
+        });
         
-        // Multi-select info as a comment in code
-        // This is a multi-select with columns based on the Search Field
+        // Trigger initial column setup
+        searchTypeComboBox.fireEvent(new javafx.event.ActionEvent());
+        
+        // Action buttons for the left panel
+        HBox actionButtonsBox = new HBox(10);
+        actionButtonsBox.setPadding(new Insets(10, 0, 0, 0));
+        actionButtonsBox.setAlignment(Pos.CENTER);
+        
+        Button newCategoryButton = new Button("New Category");
+        Button newAuthorButton = new Button("New Author");
+        Button newBookButton = new Button("New Book");
+        
+        actionButtonsBox.getChildren().addAll(
+            newCategoryButton, newAuthorButton, newBookButton
+        );
+        
+        // Add action handlers for the popup forms
+        newCategoryButton.setOnAction(e -> showFormDialog("New Category"));
+        newAuthorButton.setOnAction(e -> showFormDialog("New Author"));
+        newBookButton.setOnAction(e -> showFormDialog("New Book"));
         
         panel.getChildren().addAll(
-            searchLabel, searchField, 
-            resultsTable
+            searchLabel, searchTypeComboBox, searchField, 
+            resultsTable, actionButtonsBox
         );
         
         return panel;
@@ -146,7 +188,7 @@ public class LibraryUI extends Application {
         // Selected borrower
         HBox borrowerBox = new HBox(10);
         Label selectedBorrowerLabel = new Label("Selected Borrower (blank at start)");
-        ToggleButton viewHistoryToggle = new ToggleButton("View history toggle");
+        CheckBox viewHistoryToggle = new CheckBox("View History");
         borrowerBox.getChildren().addAll(selectedBorrowerLabel, viewHistoryToggle);
         
         // Borrower status and books
@@ -159,12 +201,23 @@ public class LibraryUI extends Application {
         TableColumn<Object, String> dueDateColumn = new TableColumn<>("Due Date");
         borrowerBooksTable.getColumns().addAll(bookTitleColumn, isbnColumn, dueDateColumn);
         
-        // Edit selected item button
-        Button editSelectedItemButton = new Button("Edit Selected Item");
+        // Borrower action buttons
+        HBox borrowerActionBox = new HBox(10);
+        borrowerActionBox.setPadding(new Insets(10, 0, 0, 0));
+        borrowerActionBox.setAlignment(Pos.CENTER);
+        
+        Button newBorrowerButton = new Button("New Borrower");
+        Button editBorrowerButton = new Button("Edit Borrower");
+        
+        borrowerActionBox.getChildren().addAll(newBorrowerButton, editBorrowerButton);
+        
+        // Add action handlers
+        newBorrowerButton.setOnAction(e -> showFormDialog("New Borrower"));
+        editBorrowerButton.setOnAction(e -> showFormDialog("Edit Borrower"));
         
         panel.getChildren().addAll(
             borrowerSearchField, borrowerBox, 
-            borrowerBooksTable, editSelectedItemButton
+            borrowerBooksTable, borrowerActionBox
         );
         
         return panel;
@@ -175,24 +228,11 @@ public class LibraryUI extends Application {
         panel.setPadding(new Insets(20, 10, 10, 10));
         panel.setAlignment(Pos.CENTER);
         
-        // Action buttons
-        Button newCategoryButton = new Button("New Category");
-        Button newAuthorButton = new Button("New Author");
-        Button newBookButton = new Button("New Book");
-        Button newBorrowerButton = new Button("New Borrower");
-        Button editBorrowerButton = new Button("Edit Borrower");
+        // Status label for the bottom panel
+        Label statusLabel = new Label("Library Management System - Ready");
+        statusLabel.setStyle("-fx-font-style: italic;");
         
-        panel.getChildren().addAll(
-            newCategoryButton, newAuthorButton, newBookButton, 
-            newBorrowerButton, editBorrowerButton
-        );
-        
-        // Add action handlers for the popup forms
-        newCategoryButton.setOnAction(e -> showFormDialog("New Category"));
-        newAuthorButton.setOnAction(e -> showFormDialog("New Author"));
-        newBookButton.setOnAction(e -> showFormDialog("New Book"));
-        newBorrowerButton.setOnAction(e -> showFormDialog("New Borrower"));
-        editBorrowerButton.setOnAction(e -> showFormDialog("Edit Borrower"));
+        panel.getChildren().add(statusLabel);
         
         return panel;
     }
