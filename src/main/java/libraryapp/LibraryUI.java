@@ -646,6 +646,11 @@ public class LibraryUI extends Application {
                 loans = db.getBorrowerHistory(selectedBorrower.getCardNumber());
             } else {
                 loans = db.getBorrowerActiveLoans(selectedBorrower.getCardNumber());
+                
+                // When not in history view, all books should be active and bold
+                for (Map<String, Object> loan : loans) {
+                    loan.put("status", "active");
+                }
             }
             
             ObservableList<LoanData> loansList = FXCollections.observableArrayList();
