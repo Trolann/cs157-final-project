@@ -1,52 +1,53 @@
 package libraryapp;
 
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Map;
 
 /**
- * Main application class that demonstrates the use of the SQLite wrapper.
+ * Main application class that demonstrates the use of the Library Database.
  */
 public class Main {
     public static void main(String[] args) {
-        // Database file path
-        String dbPath = "app_database.db";
-        
-        // Create an instance of the SQLite wrapper
-        SQLiteWrapper db = new SQLiteWrapper(dbPath);
+        // Create an instance of the Library Database
+        LibraryDatabase db = new LibraryDatabase();
         
         try {
-            // Connect to the database
-            db.connect();
+            // Initialize the library database
+            db.initializeDatabase();
             
-            // Example: Create a table
+            // Example: Add a sample author
             db.execute(
-                "CREATE TABLE IF NOT EXISTS users (" +
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                "name TEXT NOT NULL, " +
-                "email TEXT UNIQUE NOT NULL)"
+                "INSERT OR IGNORE INTO authors (name, birth_year, country) VALUES (?, ?, ?)",
+                "J.K. Rowling",
+                1965,
+                "United Kingdom"
             );
             
-            System.out.println("Database initialized successfully.");
-            
-            // Add a random user
+            // Example: Add a sample book
             db.execute(
-                    "INSERT INTO users (name, email) VALUES (?, ?)",
-                    "John Doe",
-                    "john@doe.com"
-            );
-
-            // Example: Query the database
-            Map<String, Object> user = db.querySingle(
-                    "SELECT * FROM users WHERE email LIKE ?",
-                    "%john%"
+                "INSERT OR IGNORE INTO books (title, author_id, publication_year, isbn, genre) " +
+                "VALUES (?, (SELECT id FROM authors WHERE name = ?), ?, ?, ?)",
+                "Harry Potter and the Philosopher's Stone",
+                "J.K. Rowling",
+                1997,
+                "9780747532743",
+                "Fantasy"
             );
             
-            if (user != null) {
-                for (Map.Entry<String, Object> entry : user.entrySet()) {
-                    System.out.println(entry.getKey() + ": " + entry.getValue());
-                }
-            } else {
-                System.out.println("No user found");
+            // Example: Query the database for books
+            List<Map<String, Object>> books = db.queryMultiple(
+                "SELECT b.title, a.name as author, b.publication_year, b.genre " +
+                "FROM books b JOIN authors a ON b.author_id = a.id"
+            );
+            
+            System.out.println("\nLibrary Books:");
+            for (Map<String, Object> book : books) {
+                System.out.println("Title: " + book.get("title"));
+                System.out.println("Author: " + book.get("author"));
+                System.out.println("Year: " + book.get("publication_year"));
+                System.out.println("Genre: " + book.get("genre"));
+                System.out.println("-------------------");
             }
             
         } catch (SQLException e) {
