@@ -26,35 +26,8 @@ public class FormDialog extends Dialog<Boolean> {
         formGrid.setVgap(10);
         formGrid.setPadding(new Insets(20, 150, 10, 10));
         
-        // Add appropriate fields based on the dialog type
-        switch (title) {
-            case "New Category":
-                addTextField("Category Name:", 0);
-                addTextField("Description:", 1);
-                break;
-                
-            case "New Author":
-                addTextField("Author Name:", 0);
-                addTextField("Birth Year:", 1);
-                addTextField("Country:", 2);
-                break;
-                
-            case "New Book":
-                addTextField("Title:", 0);
-                addTextField("ISBN:", 1);
-                addComboBox("Author:", 2);
-                addTextField("Publication Year:", 3);
-                addComboBox("Genre:", 4);
-                break;
-                
-            case "New Borrower":
-            case "Edit Borrower":
-                addTextField("Name:", 0);
-                addTextField("Email:", 1);
-                addTextField("Phone:", 2);
-                addTextField("Address:", 3);
-                break;
-        }
+        // We'll let the calling code add the appropriate fields
+        // instead of adding default fields here to avoid duplication
         
         getDialogPane().setContent(formGrid);
         
