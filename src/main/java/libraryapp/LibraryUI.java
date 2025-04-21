@@ -767,6 +767,7 @@ public class LibraryUI extends Application {
         // Return each selected book
         int successCount = 0;
         int inactiveCount = 0;
+        int failCount = 0;
         
         for (LoanData loan : selectedLoans) {
             // Check if already returned
@@ -779,20 +780,26 @@ public class LibraryUI extends Application {
                 boolean success = db.returnBook(loan.getReservationId());
                 if (success) {
                     successCount++;
+                } else {
+                    failCount++;
                 }
             } catch (SQLException e) {
                 showError("Database Error", "Failed to return book: " + e.getMessage());
+                failCount++;
             }
         }
         
+        // Refresh the UI regardless of success/failure to ensure consistent state
+        refreshBooksList();
+        refreshBorrowedBooks();
+        
+        // Show appropriate message based on results
         if (successCount > 0) {
             updateStatus(successCount + " book(s) returned successfully");
-            refreshBooksList();
-            refreshBorrowedBooks();
         } else if (inactiveCount == selectedLoans.size()) {
             showError("No Active Books", "The selected books have already been returned");
-        } else {
-            showError("Return Failed", "Failed to return any books");
+        } else if (failCount > 0) {
+            showError("Return Failed", "Failed to return " + failCount + " book(s)");
         }
     }
     

@@ -773,8 +773,13 @@ public class LibraryDatabase extends SQLiteWrapper {
         Map<String, Object> reservation = querySingle(
                 "SELECT book_id, status FROM Reservations WHERE reservation_id = ?", reservationId);
         
-        if (reservation == null || !"active".equals(reservation.get("status"))) {
-            return false;
+        if (reservation == null) {
+            return false; // Reservation doesn't exist
+        }
+        
+        // Check if the book is already returned
+        if (!"active".equals(reservation.get("status"))) {
+            return false; // Book already returned
         }
         
         int bookId = ((Number) reservation.get("book_id")).intValue();
