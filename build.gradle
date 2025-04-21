@@ -25,6 +25,7 @@ java {
 
 application {
     mainClass = 'libraryapp.Main'
+    applicationDefaultJvmArgs = ['--enable-native-access=ALL-UNNAMED']
 }
 
 test {

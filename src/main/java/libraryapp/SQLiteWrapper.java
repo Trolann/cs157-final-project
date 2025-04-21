@@ -14,8 +14,9 @@ import java.util.Map;
  * A wrapper class for SQLite database operations.
  */
 public class SQLiteWrapper {
-    private String dbPath;
+    private final String dbPath;
     private Connection connection;
+
 
     /**
      * Initialize the SQLite wrapper with a database path.
