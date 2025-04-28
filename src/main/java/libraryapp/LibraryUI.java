@@ -80,9 +80,11 @@ public class LibraryUI extends Application {
         mainLayout.setBottom(bottomPanel);
         
         // Create scene and show stage
-        Scene scene = new Scene(mainLayout, 900, 600);
+        Scene scene = new Scene(mainLayout, 1400, 850);
         primaryStage.setTitle("Library Management System");
         primaryStage.setScene(scene);
+        primaryStage.setMinWidth(1200);
+        primaryStage.setMinHeight(750);
         primaryStage.show();
         
         // Initialize database in background
@@ -103,7 +105,7 @@ public class LibraryUI extends Application {
     private VBox createLeftPanel() {
         VBox panel = new VBox(18);
         panel.setPadding(new Insets(24, 20, 24, 20));
-        panel.setPrefWidth(340);
+        panel.setPrefWidth(540);
         panel.setStyle("-fx-background-color: white; -fx-background-radius: 18; -fx-effect: dropshadow(gaussian, #cfd8dc, 10, 0.2, 0, 2);");
         
         // Search type dropdown
@@ -129,17 +131,25 @@ public class LibraryUI extends Application {
         // Create columns for books table
         TableColumn<BookData, String> titleColumn = new TableColumn<>("Title");
         titleColumn.setCellValueFactory(new PropertyValueFactory<>("title"));
-        titleColumn.setPrefWidth(150);
+        titleColumn.setPrefWidth(260);
         
         TableColumn<BookData, String> authorColumn = new TableColumn<>("Author");
         authorColumn.setCellValueFactory(new PropertyValueFactory<>("authors"));
-        authorColumn.setPrefWidth(100);
+        authorColumn.setPrefWidth(180);
         
         TableColumn<BookData, String> isbnColumn = new TableColumn<>("ISBN");
         isbnColumn.setCellValueFactory(new PropertyValueFactory<>("isbn"));
-        isbnColumn.setPrefWidth(80);
+        isbnColumn.setPrefWidth(120);
         
-        booksTable.getColumns().addAll(titleColumn, authorColumn, isbnColumn);
+        TableColumn<BookData, Integer> availableColumn = new TableColumn<>("# Available");
+        availableColumn.setCellValueFactory(new PropertyValueFactory<>("availableCopies"));
+        availableColumn.setPrefWidth(100);
+        
+        TableColumn<BookData, Integer> totalColumn = new TableColumn<>("# Total");
+        totalColumn.setCellValueFactory(new PropertyValueFactory<>("totalCopies"));
+        totalColumn.setPrefWidth(100);
+        
+        booksTable.getColumns().addAll(titleColumn, authorColumn, isbnColumn, availableColumn, totalColumn);
         booksTable.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 
         
@@ -207,7 +217,7 @@ public class LibraryUI extends Application {
     }
     
     private VBox createMiddlePanel() {
-        VBox panel = new VBox(28);
+        VBox panel = new VBox(48);
         panel.setPadding(new Insets(10));
         panel.setPrefWidth(120);
         panel.setAlignment(Pos.TOP_CENTER);
@@ -215,12 +225,14 @@ public class LibraryUI extends Application {
         
         // Add vertical spacing to align buttons with tables
         Region spacer = new Region();
-        spacer.setPrefHeight(100);
+        spacer.setPrefHeight(180);
         
         // Borrow/Return buttons
         Button borrowButton = new Button("Borrow >>>>");
+        borrowButton.setPrefWidth(140);
         borrowButton.setStyle("-fx-background-color: #43b581; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 7; -fx-padding: 8 0 8 0;");
         Button returnButton = new Button("<<<< Return");
+        returnButton.setPrefWidth(140);
         returnButton.setStyle("-fx-background-color: #f5a623; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 7; -fx-padding: 8 0 8 0;");
         
         // Add action handlers
@@ -235,7 +247,7 @@ public class LibraryUI extends Application {
             borrowButton.setDisable(!"Books".equals(newValue));
         });
         
-        VBox buttonBox = new VBox(15, borrowButton, returnButton);
+        VBox buttonBox = new VBox(24, borrowButton, returnButton);
         buttonBox.setAlignment(Pos.CENTER);
         
         panel.getChildren().addAll(spacer, buttonBox);
@@ -246,7 +258,7 @@ public class LibraryUI extends Application {
     private VBox createRightPanel() {
         VBox panel = new VBox(18);
         panel.setPadding(new Insets(24, 20, 24, 20));
-        panel.setPrefWidth(340);
+        panel.setPrefWidth(420);
         panel.setStyle("-fx-background-color: white; -fx-background-radius: 18; -fx-effect: dropshadow(gaussian, #cfd8dc, 10, 0.2, 0, 2);");
         
         // Borrower search
@@ -268,7 +280,8 @@ public class LibraryUI extends Application {
         
         // Borrower table
         borrowersTable = new TableView<>();
-        borrowersTable.setPrefHeight(150);
+        borrowersTable.setPrefHeight(320);
+        borrowersTable.setPrefWidth(400);
         borrowersTable.setStyle("-fx-background-radius: 10; -fx-border-radius: 10; -fx-font-size: 13px;");
         borrowersTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         borrowersTable.setPlaceholder(new Label("No users found."));
@@ -286,7 +299,8 @@ public class LibraryUI extends Application {
         
         // Borrower's books table
         borrowedBooksTable = new TableView<>();
-        borrowedBooksTable.setPrefHeight(150);
+        borrowedBooksTable.setPrefHeight(320);
+        borrowedBooksTable.setPrefWidth(400);
         borrowedBooksTable.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE); // Enable multiple selection
         
         // Make sure the selection model allows multiple selection
@@ -311,7 +325,7 @@ public class LibraryUI extends Application {
         // Add table columns for borrowed books
         TableColumn<LoanData, String> bookTitleColumn = new TableColumn<>("Book Title");
         bookTitleColumn.setCellValueFactory(new PropertyValueFactory<>("title"));
-        bookTitleColumn.setPrefWidth(150);
+        bookTitleColumn.setPrefWidth(170);
         
         // Set cell factory for each column to maintain styling
         bookTitleColumn.setCellFactory(column -> new TableCell<LoanData, String>() {
@@ -336,7 +350,7 @@ public class LibraryUI extends Application {
         
         TableColumn<LoanData, String> isbnColumn = new TableColumn<>("ISBN");
         isbnColumn.setCellValueFactory(new PropertyValueFactory<>("isbn"));
-        isbnColumn.setPrefWidth(80);
+        isbnColumn.setPrefWidth(110);
         isbnColumn.setCellFactory(column -> new TableCell<LoanData, String>() {
             @Override
             protected void updateItem(String item, boolean empty) {
@@ -360,24 +374,28 @@ public class LibraryUI extends Application {
         TableColumn<LoanData, String> dueDateColumn = new TableColumn<>("Due Date");
         dueDateColumn.setCellValueFactory(new PropertyValueFactory<>("dueDate"));
         dueDateColumn.setPrefWidth(100);
-        dueDateColumn.setCellFactory(column -> new TableCell<LoanData, String>() {
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty ? "" : item);
-                
-                TableRow<LoanData> row = getTableRow();
-                if (row != null && row.getItem() != null) {
-                    LoanData loan = row.getItem();
-                    if (!"active".equals(loan.getStatus())) {
-                        setStyle("-fx-text-fill: #888888;"); // Grey out returned books
+        dueDateColumn.setCellFactory(column -> {
+            TableCell<LoanData, String> cell = new TableCell<LoanData, String>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setText(empty ? "" : item);
+                    setStyle("-fx-alignment: CENTER; -fx-font-size: 12px;" + (empty ? "" : ""));
+                    TableRow<LoanData> row = getTableRow();
+                    if (row != null && row.getItem() != null) {
+                        LoanData loan = row.getItem();
+                        if (!"active".equals(loan.getStatus())) {
+                            setStyle("-fx-alignment: CENTER; -fx-font-size: 12px; -fx-text-fill: #888888;");
+                        } else {
+                            setStyle("-fx-alignment: CENTER; -fx-font-size: 12px; -fx-font-weight: bold;");
+                        }
                     } else {
-                        setStyle("-fx-font-weight: bold;"); // Bold active loans
+                        setStyle("-fx-alignment: CENTER; -fx-font-size: 12px;");
                     }
-                } else {
-                    setStyle("");
                 }
-            }
+            };
+            cell.setStyle("-fx-alignment: CENTER; -fx-font-size: 12px;");
+            return cell;
         });
         
         borrowedBooksTable.getColumns().addAll(bookTitleColumn, isbnColumn, dueDateColumn);
@@ -479,17 +497,25 @@ public class LibraryUI extends Application {
         
         TableColumn<BookData, String> titleColumn = new TableColumn<>("Title");
         titleColumn.setCellValueFactory(new PropertyValueFactory<>("title"));
-        titleColumn.setPrefWidth(150);
+        titleColumn.setPrefWidth(260);
         
         TableColumn<BookData, String> authorColumn = new TableColumn<>("Author");
         authorColumn.setCellValueFactory(new PropertyValueFactory<>("authors"));
-        authorColumn.setPrefWidth(100);
+        authorColumn.setPrefWidth(180);
         
         TableColumn<BookData, String> isbnColumn = new TableColumn<>("ISBN");
         isbnColumn.setCellValueFactory(new PropertyValueFactory<>("isbn"));
-        isbnColumn.setPrefWidth(80);
+        isbnColumn.setPrefWidth(120);
         
-        booksTableView.getColumns().addAll(titleColumn, authorColumn, isbnColumn);
+        TableColumn<BookData, Integer> availableColumn = new TableColumn<>("# Available");
+        availableColumn.setCellValueFactory(new PropertyValueFactory<>("availableCopies"));
+        availableColumn.setPrefWidth(100);
+        
+        TableColumn<BookData, Integer> totalColumn = new TableColumn<>("# Total");
+        totalColumn.setCellValueFactory(new PropertyValueFactory<>("totalCopies"));
+        totalColumn.setPrefWidth(100);
+        
+        booksTableView.getColumns().addAll(titleColumn, authorColumn, isbnColumn, availableColumn, totalColumn);
         
         // Add double-click handler for books
         booksTableView.setRowFactory(tv -> {
