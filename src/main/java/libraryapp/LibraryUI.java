@@ -49,11 +49,13 @@ public class LibraryUI extends Application {
         }
         // Main layout
         BorderPane mainLayout = new BorderPane();
-        mainLayout.setPadding(new Insets(20));
-        mainLayout.setStyle("-fx-background-color: #999999; -fx-background-radius: 30;");
+        mainLayout.setPadding(new Insets(0));
+        mainLayout.setStyle("-fx-background-color: linear-gradient(to bottom right, #f8fafc, #e0e7ef); -fx-background-radius: 20;");
         
         // Create a 3-column layout
-        HBox columnsLayout = new HBox(10);
+        HBox columnsLayout = new HBox(30);
+        columnsLayout.setPadding(new Insets(30, 40, 0, 40));
+        columnsLayout.setAlignment(Pos.TOP_CENTER);
         
         // Left side - Book search and results
         VBox leftPanel = createLeftPanel();
@@ -99,24 +101,30 @@ public class LibraryUI extends Application {
     }
     
     private VBox createLeftPanel() {
-        VBox panel = new VBox(10);
-        panel.setPadding(new Insets(10));
-        panel.setPrefWidth(350);
+        VBox panel = new VBox(18);
+        panel.setPadding(new Insets(24, 20, 24, 20));
+        panel.setPrefWidth(340);
+        panel.setStyle("-fx-background-color: white; -fx-background-radius: 18; -fx-effect: dropshadow(gaussian, #cfd8dc, 10, 0.2, 0, 2);");
         
         // Search type dropdown
-        Label searchLabel = new Label("Search Type");
+        Label searchLabel = new Label("Search Books");
+        searchLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #2a2a2a;");
         searchTypeComboBox = new ComboBox<>();
         searchTypeComboBox.getItems().addAll("Books", "Authors", "Categories");
         searchTypeComboBox.setValue("Books");
+        searchTypeComboBox.setStyle("-fx-font-size: 14px; -fx-background-radius: 8; -fx-padding: 6 12 6 12;");
         
         // Search field
         bookSearchField = new TextField();
-        // Searvch for <whatever is in searchTypeComboBox>
         bookSearchField.setPromptText("Search for " + searchTypeComboBox.getValue());
+        bookSearchField.setStyle("-fx-font-size: 14px; -fx-background-radius: 8; -fx-padding: 6 12 6 12; -fx-border-color: #b0bec5; -fx-border-radius: 8;");
         
         // Search results area
         booksTable = new TableView<>();
         booksTable.setPrefHeight(300);
+        booksTable.setStyle("-fx-background-radius: 10; -fx-border-radius: 10; -fx-font-size: 13px;");
+        booksTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        booksTable.setPlaceholder(new Label("No books found."));
         
         // Create columns for books table
         TableColumn<BookData, String> titleColumn = new TableColumn<>("Title");
@@ -158,12 +166,18 @@ public class LibraryUI extends Application {
         
         // Action buttons for the left panel
         HBox actionButtonsBox = new HBox(10);
-        actionButtonsBox.setPadding(new Insets(10, 0, 0, 0));
+        actionButtonsBox.setPadding(new Insets(18, 0, 0, 0));
         actionButtonsBox.setAlignment(Pos.CENTER);
+        actionButtonsBox.setStyle("-fx-background-color: transparent;");
         
         Button newItemButton = new Button("New Book");
+        newItemButton.setStyle("-fx-background-color: #4f8cff; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 7; -fx-padding: 6 18 6 18;");
+        Button deleteBookButton = new Button("Delete Book");
+        deleteBookButton.setPrefWidth(120);
+        deleteBookButton.setOnAction(e -> deleteSelectedBooks());
+        deleteBookButton.setStyle("-fx-background-color: #ff5e5b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 7; -fx-padding: 6 18 6 18;");
         
-        actionButtonsBox.getChildren().add(newItemButton);
+        actionButtonsBox.getChildren().addAll(newItemButton, deleteBookButton);
         
         // Update button text based on selected search type
         searchTypeComboBox.valueProperty().addListener((obs, oldValue, newValue) -> {
@@ -193,10 +207,11 @@ public class LibraryUI extends Application {
     }
     
     private VBox createMiddlePanel() {
-        VBox panel = new VBox(20);
+        VBox panel = new VBox(28);
         panel.setPadding(new Insets(10));
-        panel.setPrefWidth(150);
-        panel.setAlignment(Pos.CENTER);
+        panel.setPrefWidth(120);
+        panel.setAlignment(Pos.TOP_CENTER);
+        panel.setStyle("-fx-background-color: transparent;");
         
         // Add vertical spacing to align buttons with tables
         Region spacer = new Region();
@@ -204,9 +219,9 @@ public class LibraryUI extends Application {
         
         // Borrow/Return buttons
         Button borrowButton = new Button("Borrow >>>>");
+        borrowButton.setStyle("-fx-background-color: #43b581; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 7; -fx-padding: 8 0 8 0;");
         Button returnButton = new Button("<<<< Return");
-        borrowButton.setPrefWidth(120);
-        returnButton.setPrefWidth(120);
+        returnButton.setStyle("-fx-background-color: #f5a623; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 7; -fx-padding: 8 0 8 0;");
         
         // Add action handlers
         borrowButton.setOnAction(e -> borrowSelectedBook());
@@ -229,23 +244,34 @@ public class LibraryUI extends Application {
     }
     
     private VBox createRightPanel() {
-        VBox panel = new VBox(10);
-        panel.setPadding(new Insets(10));
-        panel.setPrefWidth(350);
+        VBox panel = new VBox(18);
+        panel.setPadding(new Insets(24, 20, 24, 20));
+        panel.setPrefWidth(340);
+        panel.setStyle("-fx-background-color: white; -fx-background-radius: 18; -fx-effect: dropshadow(gaussian, #cfd8dc, 10, 0.2, 0, 2);");
         
         // Borrower search
         borrowerSearchField = new TextField();
         borrowerSearchField.setPromptText("Search for borrower (name, email, etc)");
+        borrowerSearchField.setStyle("-fx-font-size: 14px; -fx-background-radius: 8; -fx-padding: 6 12 6 12; -fx-border-color: #b0bec5; -fx-border-radius: 8;");
         
         // Selected borrower
         HBox borrowerBox = new HBox(10);
         selectedBorrowerLabel = new Label("Selected A Borrower");
+        selectedBorrowerLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #2a2a2a;");
         viewHistoryToggle = new CheckBox("View History");
-        borrowerBox.getChildren().addAll(selectedBorrowerLabel, viewHistoryToggle);
+        viewHistoryToggle.setStyle("-fx-font-size: 13px;");
+        Button deleteBorrowerButton = new Button("Delete User");
+        deleteBorrowerButton.setPrefWidth(120);
+        deleteBorrowerButton.setOnAction(e -> deleteSelectedBorrowers());
+        deleteBorrowerButton.setStyle("-fx-background-color: #ff5e5b; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 7; -fx-padding: 6 18 6 18;");
+        borrowerBox.getChildren().addAll(selectedBorrowerLabel, viewHistoryToggle, deleteBorrowerButton);
         
         // Borrower table
         borrowersTable = new TableView<>();
         borrowersTable.setPrefHeight(150);
+        borrowersTable.setStyle("-fx-background-radius: 10; -fx-border-radius: 10; -fx-font-size: 13px;");
+        borrowersTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        borrowersTable.setPlaceholder(new Label("No users found."));
         
         // Set up borrowers table columns
         TableColumn<BorrowerData, String> nameColumn = new TableColumn<>("Name");
@@ -378,6 +404,7 @@ public class LibraryUI extends Application {
         borrowerActionBox.setAlignment(Pos.CENTER);
         
         Button newBorrowerButton = new Button("New Borrower");
+        newBorrowerButton.setStyle("-fx-background-color: #4f8cff; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 7; -fx-padding: 6 18 6 18;");
         
         borrowerActionBox.getChildren().add(newBorrowerButton);
         
@@ -406,12 +433,13 @@ public class LibraryUI extends Application {
     
     private HBox createBottomPanel() {
         HBox panel = new HBox(20);
-        panel.setPadding(new Insets(20, 10, 10, 10));
+        panel.setPadding(new Insets(16, 10, 16, 10));
         panel.setAlignment(Pos.CENTER);
+        panel.setStyle("-fx-background-color: #f7fafd; -fx-background-radius: 0 0 18 18;");
         
         // Status label for the bottom panel
         statusLabel = new Label("Library Management System - Ready");
-        statusLabel.setStyle("-fx-font-style: italic;");
+        statusLabel.setStyle("-fx-font-style: italic; -fx-font-size: 14px; -fx-text-fill: #4f8cff;");
         
         panel.getChildren().add(statusLabel);
         
@@ -1414,5 +1442,63 @@ public class LibraryUI extends Application {
         public String getDueDate() { return dueDate; }
         public String getReturnDate() { return returnDate; }
         public String getStatus() { return status; }
+    }
+    
+    private void deleteSelectedBooks() {
+        List<BookData> selectedBooks = new ArrayList<>(booksTable.getSelectionModel().getSelectedItems());
+        if (selectedBooks.isEmpty()) {
+            showError("No Selection", "Please select at least one book to delete");
+            return;
+        }
+        int successCount = 0;
+        int failCount = 0;
+        for (BookData book : selectedBooks) {
+            try {
+                boolean deleted = db.deleteBook(book.getBookId());
+                if (deleted) {
+                    successCount++;
+                } else {
+                    failCount++;
+                }
+            } catch (SQLException e) {
+                failCount++;
+            }
+        }
+        refreshBooksList();
+        if (successCount > 0) {
+            updateStatus(successCount + " book(s) deleted successfully");
+        }
+        if (failCount > 0) {
+            showError("Delete Failed", "Failed to delete " + failCount + " book(s). They may have active loans.");
+        }
+    }
+    
+    private void deleteSelectedBorrowers() {
+        List<BorrowerData> selectedBorrowers = new ArrayList<>(borrowersTable.getSelectionModel().getSelectedItems());
+        if (selectedBorrowers.isEmpty()) {
+            showError("No Selection", "Please select at least one user to delete");
+            return;
+        }
+        int successCount = 0;
+        int failCount = 0;
+        for (BorrowerData borrower : selectedBorrowers) {
+            try {
+                boolean deleted = db.deleteBorrower(borrower.getCardNumber());
+                if (deleted) {
+                    successCount++;
+                } else {
+                    failCount++;
+                }
+            } catch (SQLException e) {
+                failCount++;
+            }
+        }
+        refreshBorrowersList();
+        if (successCount > 0) {
+            updateStatus(successCount + " user(s) deleted successfully");
+        }
+        if (failCount > 0) {
+            showError("Delete Failed", "Failed to delete " + failCount + " user(s). They may have active loans.");
+        }
     }
 }
