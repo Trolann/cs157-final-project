@@ -38,6 +38,19 @@ public class LibraryUI extends Application {
     private Label statusLabel;
     private BorrowerData selectedBorrower;
     
+    // Add global error handler for uncaught exceptions in JavaFX thread
+    static {
+        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+            Platform.runLater(() -> {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Unexpected Error");
+                alert.setHeaderText("An unexpected error occurred");
+                alert.setContentText(throwable.getMessage() != null ? throwable.getMessage() : throwable.toString());
+                alert.showAndWait();
+            });
+        });
+    }
+    
     @Override
     public void start(Stage primaryStage) {
         // Initialize database
@@ -45,7 +58,7 @@ public class LibraryUI extends Application {
         try {
             db.connect();
         } catch (SQLException e) {
-            showError("Database Connection Error", "Failed to connect to the database: " + e.getMessage());
+            safeShowError("Database Connection Error", "Failed to connect to the database: " + e.getMessage());
         }
         // Main layout
         BorderPane mainLayout = new BorderPane();
@@ -91,13 +104,12 @@ public class LibraryUI extends Application {
         new Thread(() -> {
             try {
                 db.initializeDatabase();
-                Platform.runLater(() -> updateStatus("Database initialized successfully"));
-                
+                safeUpdateStatus("Database initialized successfully");
                 // Load initial data
-                refreshBooksList();
-                refreshBorrowersList();
+                runOnUiThread(this::refreshBooksList);
+                runOnUiThread(this::refreshBorrowersList);
             } catch (SQLException e) {
-                Platform.runLater(() -> showError("Database Error", "Failed to initialize database: " + e.getMessage()));
+                safeShowError("Database Error", "Failed to initialize database: " + e.getMessage());
             }
         }).start();
     }
@@ -629,10 +641,12 @@ public class LibraryUI extends Application {
                 booksList.add(new BookData(book));
             }
             
-            booksTable.setItems(booksList);
-            updateStatus("Loaded " + books.size() + " books");
+            runOnUiThread(() -> {
+                booksTable.setItems(booksList);
+                updateStatus("Loaded " + books.size() + " books");
+            });
         } catch (SQLException e) {
-            showError("Database Error", "Failed to load books: " + e.getMessage());
+            safeShowError("Database Error", "Failed to load books: " + e.getMessage());
         }
     }
     
@@ -647,10 +661,12 @@ public class LibraryUI extends Application {
             
             @SuppressWarnings("unchecked")
             ObservableList<BookData> castedList = (ObservableList<BookData>)(ObservableList<?>)authorsList;
-            booksTable.setItems(castedList);
-            updateStatus("Loaded " + authors.size() + " authors");
+            runOnUiThread(() -> {
+                booksTable.setItems(castedList);
+                updateStatus("Loaded " + authors.size() + " authors");
+            });
         } catch (SQLException e) {
-            showError("Database Error", "Failed to load authors: " + e.getMessage());
+            safeShowError("Database Error", "Failed to load authors: " + e.getMessage());
         }
     }
     
@@ -665,10 +681,12 @@ public class LibraryUI extends Application {
             
             @SuppressWarnings("unchecked")
             ObservableList<BookData> castedList = (ObservableList<BookData>)(ObservableList<?>)categoriesList;
-            booksTable.setItems(castedList);
-            updateStatus("Loaded " + categories.size() + " categories");
+            runOnUiThread(() -> {
+                booksTable.setItems(castedList);
+                updateStatus("Loaded " + categories.size() + " categories");
+            });
         } catch (SQLException e) {
-            showError("Database Error", "Failed to load categories: " + e.getMessage());
+            safeShowError("Database Error", "Failed to load categories: " + e.getMessage());
         }
     }
     
@@ -681,10 +699,12 @@ public class LibraryUI extends Application {
                 borrowersList.add(new BorrowerData(borrower));
             }
             
-            borrowersTable.setItems(borrowersList);
-            updateStatus("Loaded " + borrowers.size() + " borrowers");
+            runOnUiThread(() -> {
+                borrowersTable.setItems(borrowersList);
+                updateStatus("Loaded " + borrowers.size() + " borrowers");
+            });
         } catch (SQLException e) {
-            showError("Database Error", "Failed to load borrowers: " + e.getMessage());
+            safeShowError("Database Error", "Failed to load borrowers: " + e.getMessage());
         }
     }
     
@@ -726,9 +746,11 @@ public class LibraryUI extends Application {
             loansList.addAll(activeLoans);
             loansList.addAll(returnedLoans);
             
-            borrowedBooksTable.setItems(loansList);
+            runOnUiThread(() -> {
+                borrowedBooksTable.setItems(loansList);
+            });
         } catch (SQLException e) {
-            showError("Database Error", "Failed to load borrowed books: " + e.getMessage());
+            safeShowError("Database Error", "Failed to load borrowed books: " + e.getMessage());
         }
     }
     
@@ -748,10 +770,12 @@ public class LibraryUI extends Application {
                 booksList.add(new BookData(book));
             }
             
-            booksTable.setItems(booksList);
-            updateStatus("Found " + books.size() + " books matching '" + searchTerm + "'");
+            runOnUiThread(() -> {
+                booksTable.setItems(booksList);
+                updateStatus("Found " + books.size() + " books matching '" + searchTerm + "'");
+            });
         } catch (SQLException e) {
-            showError("Search Error", "Failed to search books: " + e.getMessage());
+            safeShowError("Search Error", "Failed to search books: " + e.getMessage());
         }
     }
     
@@ -771,10 +795,12 @@ public class LibraryUI extends Application {
             
             @SuppressWarnings("unchecked")
             ObservableList<BookData> castedList = (ObservableList<BookData>)(ObservableList<?>)authorsList;
-            booksTable.setItems(castedList);
-            updateStatus("Found " + authors.size() + " authors matching '" + searchTerm + "'");
+            runOnUiThread(() -> {
+                booksTable.setItems(castedList);
+                updateStatus("Found " + authors.size() + " authors matching '" + searchTerm + "'");
+            });
         } catch (SQLException e) {
-            showError("Search Error", "Failed to search authors: " + e.getMessage());
+            safeShowError("Search Error", "Failed to search authors: " + e.getMessage());
         }
     }
     
@@ -794,10 +820,12 @@ public class LibraryUI extends Application {
             
             @SuppressWarnings("unchecked")
             ObservableList<BookData> castedList = (ObservableList<BookData>)(ObservableList<?>)categoriesList;
-            booksTable.setItems(castedList);
-            updateStatus("Found " + categories.size() + " categories matching '" + searchTerm + "'");
+            runOnUiThread(() -> {
+                booksTable.setItems(castedList);
+                updateStatus("Found " + categories.size() + " categories matching '" + searchTerm + "'");
+            });
         } catch (SQLException e) {
-            showError("Search Error", "Failed to search categories: " + e.getMessage());
+            safeShowError("Search Error", "Failed to search categories: " + e.getMessage());
         }
     }
     
@@ -815,10 +843,12 @@ public class LibraryUI extends Application {
                 borrowersList.add(new BorrowerData(borrower));
             }
             
-            borrowersTable.setItems(borrowersList);
-            updateStatus("Found " + borrowers.size() + " borrowers matching '" + searchTerm + "'");
+            runOnUiThread(() -> {
+                borrowersTable.setItems(borrowersList);
+                updateStatus("Found " + borrowers.size() + " borrowers matching '" + searchTerm + "'");
+            });
         } catch (SQLException e) {
-            showError("Search Error", "Failed to search borrowers: " + e.getMessage());
+            safeShowError("Search Error", "Failed to search borrowers: " + e.getMessage());
         }
     }
     
@@ -828,12 +858,12 @@ public class LibraryUI extends Application {
         List<BookData> selectedBooks = new ArrayList<>(booksTable.getSelectionModel().getSelectedItems());
         
         if (selectedBooks.isEmpty()) {
-            showError("No Selection", "Please select at least one book to borrow");
+            safeShowError("No Selection", "Please select at least one book to borrow");
             return;
         }
         
         if (selectedBorrower == null) {
-            showError("No Borrower Selected", "Please select a borrower first");
+            safeShowError("No Borrower Selected", "Please select a borrower first");
             return;
         }
         
@@ -857,18 +887,18 @@ public class LibraryUI extends Application {
                     failedBooks.append(book.getTitle());
                 }
             } catch (SQLException e) {
-                showError("Database Error", "Failed to borrow book: " + e.getMessage());
+                safeShowError("Database Error", "Failed to borrow book: " + e.getMessage());
             }
         }
         
         if (successCount > 0) {
-            updateStatus(successCount + " book(s) borrowed by " + selectedBorrower.getFullName());
+            safeUpdateStatus(successCount + " book(s) borrowed by " + selectedBorrower.getFullName());
             refreshBooksList();
             refreshBorrowedBooks();
         }
         
         if (failedBooks.length() > 0) {
-            showError("Some Books Not Available", 
+            safeShowError("Some Books Not Available", 
                     "The following books are not available for borrowing: " + failedBooks.toString());
         }
     }
@@ -878,7 +908,7 @@ public class LibraryUI extends Application {
         List<LoanData> selectedLoans = new ArrayList<>(borrowedBooksTable.getSelectionModel().getSelectedItems());
 
         if (selectedLoans.isEmpty()) {
-            showError("No Selection", "Please select at least one book to return");
+            safeShowError("No Selection", "Please select at least one book to return");
             return;
         }
 
@@ -903,7 +933,7 @@ public class LibraryUI extends Application {
                     System.out.println("Failed to return: " + loan.getTitle());
                 }
             } catch (SQLException e) {
-                showError("Database Error", "Failed to return book: " + e.getMessage());
+                safeShowError("Database Error", "Failed to return book: " + e.getMessage());
                 System.out.println("SQL error returning book: " + e.getMessage());
                 failCount++;
             }
@@ -917,7 +947,7 @@ public class LibraryUI extends Application {
 
         // Show appropriate message based on results
         if (successCount > 0) {
-            updateStatus(successCount + " book(s) returned successfully");
+            safeUpdateStatus(successCount + " book(s) returned successfully");
 
             // Toggle history view if not already selected to show returned books
             if (!viewHistoryToggle.isSelected()) {
@@ -925,9 +955,9 @@ public class LibraryUI extends Application {
                 refreshBorrowedBooks(); // Refresh again with history view
             }
         } else if (failCount > 0) {
-            showError("Return Failed", "Failed to return " + failCount + " book(s)");
+            safeShowError("Return Failed", "Failed to return " + failCount + " book(s)");
         } else {
-            showError("Return Failed", "Could not return any of the selected books. They may be unavailable or already returned.");
+            safeShowError("Return Failed", "Could not return any of the selected books. They may be unavailable or already returned.");
         }
     }
     
@@ -956,24 +986,24 @@ public class LibraryUI extends Application {
                     String description = descriptionField.getText();
                     
                     if (name == null || name.trim().isEmpty()) {
-                        showError("Validation Error", "Category name cannot be empty");
+                        safeShowError("Validation Error", "Category name cannot be empty");
                         return false;
                     }
                     
                     if (category == null) {
                         // Add new category
                         db.addCategory(name, description);
-                        updateStatus("Category '" + name + "' added successfully");
+                        safeUpdateStatus("Category '" + name + "' added successfully");
                     } else {
                         // Update existing category
                         db.updateCategory(category.getCategoryId(), name, description);
-                        updateStatus("Category '" + name + "' updated successfully");
+                        safeUpdateStatus("Category '" + name + "' updated successfully");
                     }
                     
                     refreshCategoriesList();
                     return true;
                 } catch (SQLException e) {
-                    showError("Database Error", "Failed to save category: " + e.getMessage());
+                    safeShowError("Database Error", "Failed to save category: " + e.getMessage());
                     return false;
                 }
             }
@@ -1013,7 +1043,7 @@ public class LibraryUI extends Application {
                     
                     if (firstName == null || firstName.trim().isEmpty() || 
                         lastName == null || lastName.trim().isEmpty()) {
-                        showError("Validation Error", "First name and last name cannot be empty");
+                        safeShowError("Validation Error", "First name and last name cannot be empty");
                         return false;
                     }
                     
@@ -1022,7 +1052,7 @@ public class LibraryUI extends Application {
                         try {
                             birthYear = Integer.parseInt(birthYearStr);
                         } catch (NumberFormatException e) {
-                            showError("Validation Error", "Birth year must be a number");
+                            safeShowError("Validation Error", "Birth year must be a number");
                             return false;
                         }
                     }
@@ -1030,17 +1060,17 @@ public class LibraryUI extends Application {
                     if (author == null) {
                         // Add new author
                         db.addAuthor(firstName, lastName, birthYear, biography);
-                        updateStatus("Author '" + firstName + " " + lastName + "' added successfully");
+                        safeUpdateStatus("Author '" + firstName + " " + lastName + "' added successfully");
                     } else {
                         // Update existing author
                         db.updateAuthor(author.getAuthorId(), firstName, lastName, birthYear, biography);
-                        updateStatus("Author '" + firstName + " " + lastName + "' updated successfully");
+                        safeUpdateStatus("Author '" + firstName + " " + lastName + "' updated successfully");
                     }
                     
                     refreshAuthorsList();
                     return true;
                 } catch (SQLException e) {
-                    showError("Database Error", "Failed to save author: " + e.getMessage());
+                    safeShowError("Database Error", "Failed to save author: " + e.getMessage());
                     return false;
                 }
             }
@@ -1125,7 +1155,7 @@ public class LibraryUI extends Application {
                 }
             }
         } catch (SQLException e) {
-            showError("Database Error", "Failed to load categories: " + e.getMessage());
+            safeShowError("Database Error", "Failed to load categories: " + e.getMessage());
         }
         
         // Add authors selection
@@ -1169,7 +1199,7 @@ public class LibraryUI extends Application {
                 }
             }
         } catch (SQLException e) {
-            showError("Database Error", "Failed to load authors: " + e.getMessage());
+            safeShowError("Database Error", "Failed to load authors: " + e.getMessage());
         }
         
         dialog.setResultConverter(buttonType -> {
@@ -1184,12 +1214,12 @@ public class LibraryUI extends Application {
                     
                     if (title == null || title.trim().isEmpty() || 
                         isbn == null || isbn.trim().isEmpty()) {
-                        showError("Validation Error", "Title and ISBN cannot be empty");
+                        safeShowError("Validation Error", "Title and ISBN cannot be empty");
                         return false;
                     }
                     
                     if (category == null) {
-                        showError("Validation Error", "Please select a category");
+                        safeShowError("Validation Error", "Please select a category");
                         return false;
                     }
                     
@@ -1198,7 +1228,7 @@ public class LibraryUI extends Application {
                         try {
                             year = Integer.parseInt(yearStr);
                         } catch (NumberFormatException e) {
-                            showError("Validation Error", "Publication year must be a number");
+                            safeShowError("Validation Error", "Publication year must be a number");
                             return false;
                         }
                     }
@@ -1208,11 +1238,11 @@ public class LibraryUI extends Application {
                         try {
                             copies = Integer.parseInt(copiesStr);
                             if (copies < 1) {
-                                showError("Validation Error", "Total copies must be at least 1");
+                                safeShowError("Validation Error", "Total copies must be at least 1");
                                 return false;
                             }
                         } catch (NumberFormatException e) {
-                            showError("Validation Error", "Total copies must be a number");
+                            safeShowError("Validation Error", "Total copies must be a number");
                             return false;
                         }
                     }
@@ -1226,18 +1256,18 @@ public class LibraryUI extends Application {
                     if (book == null) {
                         // Add new book
                         db.addBook(title, isbn, year, publisher, copies, category.getCategoryId(), authorIds);
-                        updateStatus("Book '" + title + "' added successfully");
+                        safeUpdateStatus("Book '" + title + "' added successfully");
                     } else {
                         // Update existing book
                         db.updateBook(book.getBookId(), title, isbn, year, publisher, copies, 
                                      category.getCategoryId(), authorIds);
-                        updateStatus("Book '" + title + "' updated successfully");
+                        safeUpdateStatus("Book '" + title + "' updated successfully");
                     }
                     
                     refreshBooksList();
                     return true;
                 } catch (SQLException e) {
-                    showError("Database Error", "Failed to save book: " + e.getMessage());
+                    safeShowError("Database Error", "Failed to save book: " + e.getMessage());
                     return false;
                 }
             }
@@ -1277,24 +1307,24 @@ public class LibraryUI extends Application {
                     if (firstName == null || firstName.trim().isEmpty() || 
                         lastName == null || lastName.trim().isEmpty() ||
                         email == null || email.trim().isEmpty()) {
-                        showError("Validation Error", "First name, last name, and email cannot be empty");
+                        safeShowError("Validation Error", "First name, last name, and email cannot be empty");
                         return false;
                     }
                     
                     if (borrower == null) {
                         // Add new borrower
                         db.addBorrower(firstName, lastName, address, phone, email);
-                        updateStatus("Borrower '" + firstName + " " + lastName + "' added successfully");
+                        safeUpdateStatus("Borrower '" + firstName + " " + lastName + "' added successfully");
                     } else {
                         // Update existing borrower
                         db.updateBorrower(borrower.getCardNumber(), firstName, lastName, address, phone, email);
-                        updateStatus("Borrower '" + firstName + " " + lastName + "' updated successfully");
+                        safeUpdateStatus("Borrower '" + firstName + " " + lastName + "' updated successfully");
                     }
                     
                     refreshBorrowersList();
                     return true;
                 } catch (SQLException e) {
-                    showError("Database Error", "Failed to save borrower: " + e.getMessage());
+                    safeShowError("Database Error", "Failed to save borrower: " + e.getMessage());
                     return false;
                 }
             }
@@ -1305,6 +1335,22 @@ public class LibraryUI extends Application {
     }
     
     // ========== Utility Methods ==========
+    
+    private void runOnUiThread(Runnable action) {
+        if (Platform.isFxApplicationThread()) {
+            action.run();
+        } else {
+            Platform.runLater(action);
+        }
+    }
+    
+    private void safeShowError(String title, String message) {
+        runOnUiThread(() -> showError(title, message));
+    }
+
+    private void safeUpdateStatus(String message) {
+        runOnUiThread(() -> updateStatus(message));
+    }
     
     private void updateStatus(String message) {
         statusLabel.setText(message);
@@ -1473,7 +1519,7 @@ public class LibraryUI extends Application {
     private void deleteSelectedBooks() {
         List<BookData> selectedBooks = new ArrayList<>(booksTable.getSelectionModel().getSelectedItems());
         if (selectedBooks.isEmpty()) {
-            showError("No Selection", "Please select at least one book to delete");
+            safeShowError("No Selection", "Please select at least one book to delete");
             return;
         }
         int successCount = 0;
@@ -1492,17 +1538,17 @@ public class LibraryUI extends Application {
         }
         refreshBooksList();
         if (successCount > 0) {
-            updateStatus(successCount + " book(s) deleted successfully");
+            safeUpdateStatus(successCount + " book(s) deleted successfully");
         }
         if (failCount > 0) {
-            showError("Delete Failed", "Failed to delete " + failCount + " book(s). They may have active loans.");
+            safeShowError("Delete Failed", "Failed to delete " + failCount + " book(s). They may have active loans.");
         }
     }
     
     private void deleteSelectedBorrowers() {
         List<BorrowerData> selectedBorrowers = new ArrayList<>(borrowersTable.getSelectionModel().getSelectedItems());
         if (selectedBorrowers.isEmpty()) {
-            showError("No Selection", "Please select at least one user to delete");
+            safeShowError("No Selection", "Please select at least one user to delete");
             return;
         }
         int successCount = 0;
@@ -1521,10 +1567,10 @@ public class LibraryUI extends Application {
         }
         refreshBorrowersList();
         if (successCount > 0) {
-            updateStatus(successCount + " user(s) deleted successfully");
+            safeUpdateStatus(successCount + " user(s) deleted successfully");
         }
         if (failCount > 0) {
-            showError("Delete Failed", "Failed to delete " + failCount + " user(s). They may have active loans.");
+            safeShowError("Delete Failed", "Failed to delete " + failCount + " user(s). They may have active loans.");
         }
     }
 }
